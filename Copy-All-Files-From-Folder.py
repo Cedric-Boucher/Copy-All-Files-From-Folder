@@ -120,7 +120,7 @@ def main() -> None:
 
         file_extensions = tuple(file_extensions.split(" "))
 
-        print(str(move_files(input_folder, output_folder, file_extensions, move_or_copy)) + " errors")
+        print(str(move_files(input_folder, output_folder, file_extensions, move_or_copy)) + "\n\nerrors")
 
     return None
 
