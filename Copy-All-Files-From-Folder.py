@@ -99,7 +99,7 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
                 while 0 < currently_error < 100:
                     # retry up to 100 times to copy file with new filename
                     new_filename_parts = file.split(".")
-                    new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(currently_error) + new_filename_parts[-1]
+                    new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(currently_error) + "." + new_filename_parts[-1]
                     try:
                         if move_or_copy == "C":
                             copy2(source_file_path, os.path.abspath(output_folder+"/"+new_filename))
