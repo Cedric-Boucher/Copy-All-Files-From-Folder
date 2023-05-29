@@ -58,7 +58,7 @@ def progress_bar(progress: float, length: int, start_string = "~<{", end_string 
     print(output_string, end="")
     if with_percentage:
         print(" {:6.2f}%".format(progress*100), end="")
-    
+
     return None
 
 
@@ -95,7 +95,7 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
                     errors += 1
                 number_of_files_processed += 1
                 progress_bar(number_of_files_processed/number_of_files_total, 100)
-    
+
     return errors
 
 
