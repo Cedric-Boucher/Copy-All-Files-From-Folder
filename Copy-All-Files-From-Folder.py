@@ -86,7 +86,6 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
     number_of_files_total = get_num_files_with_file_extension(os.path.abspath(input_folder), file_extensions)
     number_of_files_processed = 0
     errors = 0
-    currently_error = 0 # flag if file copy failed, counts retries, resets to 0 upon success
 
     for path, _, files in os.walk(os.path.abspath(input_folder)):
         for file in files:
@@ -97,27 +96,35 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
                         copy2(source_file_path, output_folder)
                     else:
                         move(source_file_path, output_folder)
-                    currently_error = 0
                 except Error: # happens if destination path/filename combo exists already
                     errors += 1
-                    currently_error = 1
-                while 0 < currently_error < 100:
-                    # retry up to 100 times to copy file with new filename
-                    new_filename_parts = file.split(".")
-                    new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(currently_error) + "." + new_filename_parts[-1]
-                    try:
-                        if move_or_copy == "C":
-                            copy2(source_file_path, os.path.abspath(output_folder+"/"+new_filename))
-                        else:
-                            move(source_file_path, os.path.abspath(output_folder+"/"+new_filename))
-                        currently_error = 0
-                        errors -= 1 # error was resolved
-                    except Error: # happens if destination path/filename combo exists already
-                        currently_error += 1
+                    move_file_error(source_file_path, output_folder, file, move_or_copy)
                 number_of_files_processed += 1
                 progress_bar(number_of_files_processed/number_of_files_total, 100)
 
     return errors
+
+
+def move_file_error(source_file_path, destination_file_path, filename, move_or_copy, max_retries = 100):
+    """
+    deals with errors in copying a file.
+    it's probably just that the destination already has the filename
+    """
+    while 0 < currently_error < max_retries:
+        # retry up to 100 times to copy file with new filename
+        new_filename_parts = filename.split(".")
+        new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(currently_error) + "." + new_filename_parts[-1]
+        try:
+            if move_or_copy == "C":
+                copy2(source_file_path, os.path.abspath(destination_file_path+"/"+new_filename))
+            else:
+                move(source_file_path, os.path.abspath(destination_file_path+"/"+new_filename))
+            currently_error = 0
+            errors -= 1 # error was resolved
+        except Error: # happens if destination path/filename combo exists already
+            currently_error += 1
+
+    return None
 
 
 def main() -> None:
