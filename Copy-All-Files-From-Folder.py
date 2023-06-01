@@ -30,7 +30,7 @@ def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
 
     if len(file_extensions) == 0:
-        file_extensions == "" # all strings end with ""
+        file_extensions = "" # all strings end with ""
 
     num_files = 0
     t = time.time()
@@ -80,7 +80,7 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
 
     if len(file_extensions) == 0:
-        file_extensions == "" # all strings end with ""
+        file_extensions = "" # all strings end with ""
 
 
     if move_or_copy == "C":
