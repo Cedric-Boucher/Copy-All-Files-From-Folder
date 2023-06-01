@@ -29,7 +29,7 @@ def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (
     """
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
 
-    if len(file_extensions == 0):
+    if len(file_extensions) == 0:
         file_extensions == "" # all strings end with ""
 
     num_files = 0
@@ -71,11 +71,17 @@ def progress_bar(progress: float, length: int, start_string = "~<{", end_string 
 def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str], move_or_copy: str) -> int:
     """
     move_or_copy can be either "M" or "C"
+
+    if file_extensions is empty tuple then all file extensions will be copied/moved
     
     returns number of errors, prints progress
     """
     assert (move_or_copy in ["C", "M"]), "move_or_copy was not 'C' or 'M'"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
+
+    if len(file_extensions) == 0:
+        file_extensions == "" # all strings end with ""
+
 
     if move_or_copy == "C":
         print("Copying Files from {} to {}".format(input_folder, output_folder))
@@ -169,25 +175,28 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
 
 
 def main() -> None:
-    get_file_extensions_or_run_program = input("Get File Extensions? (Y, anything else runs program normally):\n")
+    get_file_extensions_or_run_program = input("Get File Extensions? (Y, anything else runs program normally):\n").split("#")[0]
     print("")
     if get_file_extensions_or_run_program.upper() == "Y":
-        print(get_file_extensions(input("Folder to get file extensions list from:\n")))
+        print(get_file_extensions(input("Folder to get file extensions list from:\n").split("#")[0]))
 
     else:
-        input_folder = input("Input Folder (all files with specified extensions will be copied/moved from this folder and all subfolders):\n")
+        input_folder = input("Input Folder (all files with specified extensions will be copied/moved from this folder and all subfolders):\n").split("#")[0]
         print("")
 
-        output_folder = input("Output Folder (all files will be copied/moved into this directory):\n")
+        output_folder = input("Output Folder (all files will be copied/moved into this directory):\n").split("#")[0]
         print("")
 
-        file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n")
+        file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n").split("#")[0]
         print("")
 
-        move_or_copy = input("Copy or Move? (M for Move, C for Copy):\n")
+        move_or_copy = input("Copy or Move? (M for Move, C for Copy):\n").split("#")[0]
         print("")
 
-        file_extensions = tuple(file_extensions.split(" "))
+        if file_extensions == "":
+            file_extensions = tuple()
+        else:
+            file_extensions = tuple(file_extensions.split(" "))
 
         print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, move_or_copy)) + " errors")
 
