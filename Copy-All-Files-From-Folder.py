@@ -79,10 +79,6 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
     assert (move_or_copy in ["C", "M"]), "move_or_copy was not 'C' or 'M'"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
 
-    if len(file_extensions) == 0:
-        file_extensions = "" # all strings end with ""
-
-
     if move_or_copy == "C":
         print("Copying Files from {} to {}".format(input_folder, output_folder))
     else:
@@ -93,6 +89,9 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
     number_of_files_total = get_num_files_with_file_extension(os.path.abspath(input_folder), file_extensions)
     number_of_files_processed = 0
     errors = 0
+
+    if len(file_extensions) == 0:
+        file_extensions = "" # all strings end with ""
 
     for path, _, files in os.walk(os.path.abspath(input_folder)):
         files_with_valid_extension = (file for file in files if file.endswith(file_extensions))
