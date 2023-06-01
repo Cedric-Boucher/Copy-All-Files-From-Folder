@@ -163,9 +163,10 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
         else:
             # the files are identical in size, modification date, and creation date,
             # we assume they are the same file, so we can move the source file to trash
-            # and keep the destination file where it is
-            send2trash(source_file_path)
-            return True
+            # and keep the destination file where it is, if set to move. if copy then do nothing.
+            if move_or_copy == "M":
+                send2trash(source_file_path)
+            return True # error was resolved
     
     else:
         # for now I don't know what else the error could be
