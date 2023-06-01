@@ -19,12 +19,17 @@ def get_file_extensions(path: str) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_num_files_with_file_extension(path: str, file_extensions: tuple[str], print_stats_every_x_seconds = 1) -> int:
+def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (), print_stats_every_x_seconds = 1) -> int:
     """
     Counts the number of files in a directory using os.walk
     set print_stats_every_x_seconds to -1 to never print
+    if file_extensions is an empty tuple, will not check file extensions,
+    and count all files
     """
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
+
+    if len(file_extensions == 0):
+        file_extensions == "" # all strings end with ""
 
     num_files = 0
     t = time.time()
