@@ -130,21 +130,12 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
         destination_size = destination_file_stats.st_size
         is_size_identical = (source_size == destination_size)
 
-        source_modification_time = source_file_stats.st_mtime
-        destination_modification_time = destination_file_stats.st_mtime
-        is_modification_time_identical = (source_modification_time == destination_modification_time)
-
-        source_creation_time = source_file_stats.st_ctime
-        destination_creation_time = destination_file_stats.st_ctime
-        is_creation_time_identical = (source_creation_time == destination_creation_time)
-
         # this code will assume that if you have a filename conflict where both files have:
-        # - modification time,
-        # - creation time, AND
-        # - size in bytes
-        # that these are the same file. It's so insanely unlikely that they aren't, that, well, I'm not going to run a checksum
+        # - same size in bytes
+        # that these are the same file. It's unlikely that they aren't, that, well, I'm not going to run a checksum
+        # I previously had date checks but they were unreliable and resulted in duplicated files
 
-        if (not is_size_identical) or (not is_modification_time_identical) or (not is_creation_time_identical):
+        if (not is_size_identical):
             # at least one thing is different about the files, so they are not the same file
             # in that case, simply rename the file (and retry with a different number until success)
             for retry_count in range(max_retries):
