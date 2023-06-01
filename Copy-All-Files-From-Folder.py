@@ -1,4 +1,5 @@
 from shutil import copy2, move, Error
+from send2trash import send2trash
 import os
 import time
 
@@ -88,43 +89,83 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
     errors = 0
 
     for path, _, files in os.walk(os.path.abspath(input_folder)):
-        for file in files:
-            if file.endswith(file_extensions):
-                source_file_path = os.path.abspath(path+"/"+file)
-                try:
-                    if move_or_copy == "C":
-                        copy2(source_file_path, output_folder)
-                    else:
-                        move(source_file_path, output_folder)
-                except Error: # happens if destination path/filename combo exists already
+        files_with_valid_extension = (file for file in files if file.endswith(file_extensions))
+        for file in files_with_valid_extension:
+            source_file_path = os.path.abspath(path+"/"+file)
+            try:
+                if move_or_copy == "C":
+                    copy2(source_file_path, output_folder)
+                else:
+                    move(source_file_path, output_folder)
+            except Error: # happens if destination path/filename combo exists already
+                success: bool = move_file_error(source_file_path, output_folder, file, move_or_copy)
+                if not success:
                     errors += 1
-                    move_file_error(source_file_path, output_folder, file, move_or_copy)
-                number_of_files_processed += 1
-                progress_bar(number_of_files_processed/number_of_files_total, 100)
+            number_of_files_processed += 1
+            progress_bar(number_of_files_processed/number_of_files_total, 100)
 
     return errors
 
 
-def move_file_error(source_file_path, destination_file_path, filename, move_or_copy, max_retries = 100):
+def move_file_error(source_file_path: str, destination_folder: str, filename: str, move_or_copy: str, max_retries = 100) -> None:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
-    """
-    while 0 < currently_error < max_retries:
-        # retry up to 100 times to copy file with new filename
-        new_filename_parts = filename.split(".")
-        new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(currently_error) + "." + new_filename_parts[-1]
-        try:
-            if move_or_copy == "C":
-                copy2(source_file_path, os.path.abspath(destination_file_path+"/"+new_filename))
-            else:
-                move(source_file_path, os.path.abspath(destination_file_path+"/"+new_filename))
-            currently_error = 0
-            errors -= 1 # error was resolved
-        except Error: # happens if destination path/filename combo exists already
-            currently_error += 1
 
-    return None
+    returns True for resolved or False for not resolved
+    """
+    error_is_filename_conflict = os.path.exists(os.path.abspath(destination_folder+"/"+filename))
+
+    if error_is_filename_conflict:
+        # check if files are the same
+        source_file_stats = os.stat(source_file_path)
+        destination_file_stats = os.stat(os.path.abspath(destination_folder+"/"+filename))
+
+        source_size = source_file_stats.st_size
+        destination_size = destination_file_stats.st_size
+        is_size_identical = (source_size == destination_size)
+
+        source_modification_time = source_file_stats.st_mtime
+        destination_modification_time = destination_file_stats.st_mtime
+        is_modification_time_identical = (source_modification_time == destination_modification_time)
+
+        source_creation_time = source_file_stats.st_ctime
+        destination_creation_time = destination_file_stats.st_ctime
+        is_creation_time_identical = (source_creation_time == destination_creation_time)
+
+        # this code will assume that if you have a filename conflict where both files have:
+        # - modification time,
+        # - creation time, AND
+        # - size in bytes
+        # that these are the same file. It's so insanely unlikely that they aren't, that, well, I'm not going to run a checksum
+
+        if (not is_size_identical) or (not is_modification_time_identical) or (not is_creation_time_identical):
+            # at least one thing is different about the files, so they are not the same file
+            # in that case, simply rename the file (and retry with a different number until success)
+            for retry_count in range(max_retries):
+                # retry up to 100 times to copy file with new filename
+                new_filename_parts = filename.split(".")
+                new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
+                try:
+                    if move_or_copy == "C":
+                        copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
+                    else:
+                        move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
+                    return True # error was resolved
+                except Error: # happens if destination path/filename combo exists already
+                    pass
+
+        else:
+            # the files are identical in size, modification date, and creation date,
+            # we assume they are the same file, so we can move the source file to trash
+            # and keep the destination file where it is
+            send2trash(source_file_path)
+    
+    else:
+        # for now I don't know what else the error could be
+        return False # error was not resolved
+
+    return False # in case somehow code gets to here, error was clearly not resolved
 
 
 def main() -> None:
