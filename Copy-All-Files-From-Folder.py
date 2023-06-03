@@ -1,5 +1,5 @@
 """
-compatible with config files versioned V0.1
+compatible with config files versioned V0.2
 """
 from shutil import copy2, move, Error
 from send2trash import send2trash
@@ -239,6 +239,9 @@ def main() -> None:
         file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n").split("#")[0]
         print("")
 
+        file_starts = input("File beginnings to copy/move (space separated, ex: '.'):\n").split("#")[0]
+        print("")
+
         move_mode = input("Copy, Move, Trash, or permanently Delete? (M for Move, C for Copy, T for Trash, D for PERMANENTLY DELETE):\n").split("#")[0]
         print("")
 
@@ -247,7 +250,7 @@ def main() -> None:
         else:
             file_extensions = tuple(file_extensions.split(" "))
 
-        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, move_mode=move_mode)) + " errors")
+        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
 
     return None
 
