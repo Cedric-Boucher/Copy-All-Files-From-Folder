@@ -199,6 +199,8 @@ def delete_all_files_that_start_with(folder_path: str, start_with: tuple[str], d
     assert (type(start_with) == tuple), "start_with was not tuple"
     assert (len(start_with) > 0), "start_with was empty tuple"
 
+    print("deleting files that start with {} from {}".format(start_with, folder_path))
+
     print("") # newline since first progress_bar() will \r
 
     number_of_files_total = get_num_files_that_start_with(os.path.abspath(folder_path), start_with)
@@ -252,5 +254,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    print(delete_all_files_that_start_with("K:\Downloads\Google Photo Takeout Output", tuple("$")))
 
