@@ -2,14 +2,11 @@
 VERSION 0.1
 
 compatible with config files versioned V0.1
-
 """
-
-
 from shutil import copy2, move, Error
 from send2trash import send2trash
 import os
-import time
+from time import time
 
 
 def get_file_extensions(path: str) -> tuple[str]:
@@ -41,16 +38,16 @@ def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (
         file_extensions = "" # all strings end with ""
 
     num_files = 0
-    t = time.time()
+    t = time()
     if print_stats_every_x_seconds != -1:
         print("\nChecking number of files for path "+str(path)+"...\n")
     for _, _, files in os.walk(os.path.abspath(path)):
         for file in files:
             if file.endswith(file_extensions):
                 num_files += 1
-        if time.time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
+        if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
             print("\r{} files...".format(num_files), end="")
-            t = time.time()
+            t = time()
 
     return num_files
 
@@ -64,16 +61,16 @@ def get_num_files_that_start_with(path: str, start_with: tuple[str], print_stats
     assert (len(start_with) > 0), "start_with was empty tuple"
 
     num_files = 0
-    t = time.time()
+    t = time()
     if print_stats_every_x_seconds != -1:
         print("\nChecking number of files for path "+str(path)+"...\n")
     for _, _, files in os.walk(os.path.abspath(path)):
         for file in files:
             if file.startswith(start_with):
                 num_files += 1
-        if time.time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
+        if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
             print("\r{} files...".format(num_files), end="")
-            t = time.time()
+            t = time()
 
     return num_files
 
