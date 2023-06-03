@@ -1,3 +1,11 @@
+"""
+VERSION 0.1
+
+compatible with config files versioned V0.1
+
+"""
+
+
 from shutil import copy2, move, Error
 from send2trash import send2trash
 import os
@@ -255,5 +263,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     #main()
-    print(delete_all_files_that_start_with("K:\Downloads\Google Photo Takeout Output", tuple("$")))
+    print(delete_all_files_that_start_with("K:\Downloads\Google Photo Takeout Output", tuple(["._"])))
 
