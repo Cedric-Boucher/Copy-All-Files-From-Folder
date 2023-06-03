@@ -229,5 +229,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    #print(delete_all_files_that_start_with("K:\Downloads\Google Photo Takeout Output", tuple(["._"])))
 
