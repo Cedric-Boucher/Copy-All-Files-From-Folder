@@ -113,7 +113,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             except:
                 assert (False), "destination folder didn't exist and couldn't be created"
 
-    number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions)
+    number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     number_of_files_processed = 0
     error_count = 0
 
@@ -249,6 +249,11 @@ def main() -> None:
             file_extensions = tuple()
         else:
             file_extensions = tuple(file_extensions.split(" "))
+
+        if file_starts == "":
+            file_starts = tuple()
+        else:
+            file_starts = tuple(file_starts.split(" "))
 
         print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
 
