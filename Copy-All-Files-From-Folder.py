@@ -25,7 +25,7 @@ def get_file_extensions(path: str) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (), print_stats_every_x_seconds = 1) -> int:
+def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
     """
     Counts the number of files in a directory using os.walk
     set print_stats_every_x_seconds to -1 to never print
@@ -52,7 +52,7 @@ def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (
     return num_files
 
 
-def get_num_files_that_start_with(path: str, start_with: tuple[str], print_stats_every_x_seconds = 1) -> int:
+def get_num_files_that_start_with(path: str, start_with: tuple[str], print_stats_every_x_seconds = -1) -> int:
     """
     Counts the number of files in a directory using os.walk
     set print_stats_every_x_seconds to -1 to never print
