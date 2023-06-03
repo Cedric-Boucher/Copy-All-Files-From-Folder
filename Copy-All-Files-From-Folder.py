@@ -223,7 +223,7 @@ def main() -> None:
         input_folder = input("Input Folder (all files with specified extensions will be copied/moved from this folder and all subfolders):\n").split("#")[0]
         print("")
 
-        output_folder = input("Output Folder (all files will be copied/moved into this directory):\n").split("#")[0]
+        output_folder = input("Output Folder (all files will be copied/moved into this directory, not necessary for trash or deletion):\n").split("#")[0]
         print("")
 
         file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n").split("#")[0]
