@@ -47,6 +47,29 @@ def get_num_files_with_file_extension(path: str, file_extensions: tuple[str] = (
     return num_files
 
 
+def get_num_files_that_start_with(path: str, start_with: tuple[str], print_stats_every_x_seconds = 1) -> int:
+    """
+    Counts the number of files in a directory using os.walk
+    set print_stats_every_x_seconds to -1 to never print
+    """
+    assert (type(start_with) == tuple), "start_with was not a tuple"
+    assert (len(start_with) > 0), "start_with was empty tuple"
+
+    num_files = 0
+    t = time.time()
+    if print_stats_every_x_seconds != -1:
+        print("\nChecking number of files for path "+str(path)+"...\n")
+    for _, _, files in os.walk(os.path.abspath(path)):
+        for file in files:
+            if file.startswith(start_with):
+                num_files += 1
+        if time.time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
+            print("\r{} files...".format(num_files), end="")
+            t = time.time()
+
+    return num_files
+
+
 def progress_bar(progress: float, length: int, start_string = "~<{", end_string = "}>~", fill_char = "/", empty_char = "-", overwrite_previous_bar = True, with_percentage = True) -> None:
     """
     progress is float [0, 1]
@@ -68,7 +91,7 @@ def progress_bar(progress: float, length: int, start_string = "~<{", end_string 
     return None
 
 
-def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str], move_or_copy: str) -> int:
+def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str], move_or_copy: str = "C") -> int:
     """
     move_or_copy can be either "M" or "C"
 
@@ -112,7 +135,7 @@ def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str
     return errors
 
 
-def move_file_error(source_file_path: str, destination_folder: str, filename: str, move_or_copy: str, max_retries = 100) -> None:
+def move_file_error(source_file_path: str, destination_folder: str, filename: str, move_or_copy: str = "C", max_retries = 100) -> None:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
@@ -164,6 +187,39 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
         return False # error was not resolved
 
     return False # in case somehow code gets to here, error was clearly not resolved
+
+
+def delete_all_files_that_start_with(folder_path: str, start_with: tuple[str], do_permanent_delete: bool = False) -> int:
+    """
+    deletes all files in folder_path
+    and all subfolders, that start with start_with string
+
+    returns number of errors
+    """
+    assert (type(start_with) == tuple), "start_with was not tuple"
+    assert (len(start_with) > 0), "start_with was empty tuple"
+
+    print("") # newline since first progress_bar() will \r
+
+    number_of_files_total = get_num_files_that_start_with(os.path.abspath(folder_path), start_with)
+    number_of_files_processed = 0
+    errors = 0
+
+    for path, _, files in os.walk(os.path.abspath(folder_path)):
+        files_with_valid_extension = (file for file in files if file.startswith(start_with))
+        for file in files_with_valid_extension:
+            source_file_path = os.path.abspath(path+"/"+file)
+            try:
+                if do_permanent_delete:
+                    os.remove(source_file_path)
+                else:
+                    send2trash(source_file_path)
+            except:
+                errors += 1
+            number_of_files_processed += 1
+            progress_bar(number_of_files_processed/number_of_files_total, 100)
+
+    return errors
 
 
 def main() -> None:
