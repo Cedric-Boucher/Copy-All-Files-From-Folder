@@ -79,57 +79,78 @@ def progress_bar(progress: float, length: int, start_string = "~<{", end_string 
     return None
 
 
-def move_files(input_folder: str, output_folder: str, file_extensions: tuple[str], move_or_copy: str = "C") -> int:
+def move_files(input_folder: str, output_folder: str = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> int:
     """
-    move_or_copy can be either "M" or "C"
+    move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
-    if file_extensions is empty tuple then all file extensions will be copied/moved
+    output_folder should be defined for move_mode C or M, but is unused for T or D
+
+    if file_extensions/start_with is empty tuple then all file extensions will be copied/moved
     
     returns number of errors, prints progress
     """
-    assert (move_or_copy in ["C", "M"]), "move_or_copy was not 'C' or 'M'"
+    assert (move_mode in ["C", "M"]), "move_mode was not 'C' or 'M'"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
+    assert (type(start_with) == tuple), "start_with was not a tuple"
+    assert (type(input_folder) == str), "input_folder was not string"
+    if move_mode in ["C", "M"]:
+        assert (type(output_folder) == str), "output_folder was not string"
 
     number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions)
     number_of_files_processed = 0
-    errors = 0
+    error_count = 0
 
-    if move_or_copy == "C":
-        print("Copying Files from {} to {}".format(input_folder, output_folder))
-    else:
-        print("Moving Files from {} to {}".format(input_folder, output_folder))
+    if move_mode == "C":
+        print("Copying Files from \"{}\" to \"{}\"".format(input_folder, output_folder))
+    elif move_mode == "M":
+        print("Moving Files from \"{}\" to \"{}\"".format(input_folder, output_folder))
+    elif move_mode == "T":
+        print("Trashing Files from \"{}\"".format(input_folder))
+    elif move_mode == "D":
+        print("PERMANENTLY DELETING Files from \"{}\"".format(input_folder))
 
     print("") # newline since first progress_bar() will \r
 
     if len(file_extensions) == 0:
         file_extensions = "" # all strings end with ""
 
+    if len(start_with) == 0:
+        start_with = "" # all strings start with ""
+
     for path, _, files in os.walk(os.path.abspath(input_folder)):
-        files_with_valid_extension = (file for file in files if file.endswith(file_extensions))
-        for file in files_with_valid_extension:
+        files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
+        for file in files_with_valid_extension_and_start:
             source_file_path = os.path.abspath(path+"/"+file)
             try:
-                if move_or_copy == "C":
+                if move_mode == "C":
                     copy2(source_file_path, output_folder)
-                else:
+                elif move_mode == "M":
                     move(source_file_path, output_folder)
+                elif move_mode == "T":
+                    send2trash(source_file_path)
+                elif move_mode == "D":
+                    os.remove(source_file_path)
             except Error: # happens if destination path/filename combo exists already
-                success: bool = move_file_error(source_file_path, output_folder, file, move_or_copy)
+                success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
                 if not success:
-                    errors += 1
+                    error_count += 1
+            except: # unknown error
+                error_count += 1
             number_of_files_processed += 1
             progress_bar(number_of_files_processed/number_of_files_total, 100)
 
-    return errors
+    return error_count
 
 
-def move_file_error(source_file_path: str, destination_folder: str, filename: str, move_or_copy: str = "C", max_retries = 100) -> None:
+def move_file_error(source_file_path: str, destination_folder: str, filename: str, move_mode: str = "C", max_retries = 100) -> None:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
 
     returns True for resolved or False for not resolved
     """
+    assert (move_mode in ["C", "M"]), "move_mode invalid for error handling"
+
     error_is_filename_conflict = os.path.exists(os.path.abspath(destination_folder+"/"+filename))
 
     if error_is_filename_conflict:
@@ -154,7 +175,7 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
                 new_filename_parts = filename.split(".")
                 new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
                 try:
-                    if move_or_copy == "C":
+                    if move_mode == "C":
                         copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
                     else:
                         move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
@@ -166,7 +187,7 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
             # the files are identical in size, modification date, and creation date,
             # we assume they are the same file, so we can move the source file to trash
             # and keep the destination file where it is, if set to move. if copy then do nothing.
-            if move_or_copy == "M":
+            if move_mode == "M":
                 send2trash(source_file_path)
             return True # error was resolved
     
@@ -175,41 +196,6 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
         return False # error was not resolved
 
     return False # in case somehow code gets to here, error was clearly not resolved
-
-
-def delete_all_files_that_start_with(folder_path: str, start_with: tuple[str], do_permanent_delete: bool = False) -> int:
-    """
-    deletes all files in folder_path
-    and all subfolders, that start with start_with string
-
-    returns number of errors
-    """
-    assert (type(start_with) == tuple), "start_with was not tuple"
-    assert (len(start_with) > 0), "start_with was empty tuple"
-
-    number_of_files_total = get_num_files_in_folder(os.path.abspath(folder_path), start_with=start_with)
-    number_of_files_processed = 0
-    errors = 0
-
-    print("deleting files that start with {} from {}".format(start_with, folder_path))
-
-    print("") # newline since first progress_bar() will \r
-
-    for path, _, files in os.walk(os.path.abspath(folder_path)):
-        files_with_valid_extension = (file for file in files if file.startswith(start_with))
-        for file in files_with_valid_extension:
-            source_file_path = os.path.abspath(path+"/"+file)
-            try:
-                if do_permanent_delete:
-                    os.remove(source_file_path)
-                else:
-                    send2trash(source_file_path)
-            except:
-                errors += 1
-            number_of_files_processed += 1
-            progress_bar(number_of_files_processed/number_of_files_total, 100)
-
-    return errors
 
 
 def main() -> None:
@@ -228,7 +214,7 @@ def main() -> None:
         file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n").split("#")[0]
         print("")
 
-        move_or_copy = input("Copy or Move? (M for Move, C for Copy):\n").split("#")[0]
+        move_mode = input("Copy or Move? (M for Move, C for Copy):\n").split("#")[0]
         print("")
 
         if file_extensions == "":
@@ -236,7 +222,7 @@ def main() -> None:
         else:
             file_extensions = tuple(file_extensions.split(" "))
 
-        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, move_or_copy)) + " errors")
+        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, move_mode)) + " errors")
 
     return None
 
