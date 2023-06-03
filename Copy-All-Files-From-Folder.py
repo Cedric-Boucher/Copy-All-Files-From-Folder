@@ -229,7 +229,7 @@ def main() -> None:
         file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n").split("#")[0]
         print("")
 
-        move_mode = input("Copy or Move? (M for Move, C for Copy):\n").split("#")[0]
+        move_mode = input("Copy, Move, Trash, or permanently Delete? (M for Move, C for Copy, T for Trash, D for PERMANENTLY DELETE):\n").split("#")[0]
         print("")
 
         if file_extensions == "":
