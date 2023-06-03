@@ -105,8 +105,13 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
     assert (type(start_with) == tuple), "start_with was not a tuple"
     assert (os.path.exists(input_folder)), "input_folder does not exist"
+
     if move_mode in ["C", "M"]:
-        assert (os.path.exists(output_folder)), "output_folder does not exist"
+        if not os.path.exists(output_folder):
+            try:
+                os.mkdir(output_folder)
+            except:
+                assert (False), "destination folder didn't exist and couldn't be created"
 
     number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions)
     number_of_files_processed = 0
@@ -163,8 +168,13 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
     """
     assert (move_mode in ["C", "M"]), "move_mode invalid for error handling"
     assert (os.path.exists(source_file_path)), "source_file_path does not exist"
-    assert (os.path.exists(destination_folder)), "destination_folder does not exist"
     assert (type(filename) == str), "filename was not string"
+
+    if not os.path.exists(destination_folder):
+        try:
+            os.mkdir(destination_folder)
+        except:
+            assert (False), "destination folder didn't exist and couldn't be created"
 
     error_is_filename_conflict = os.path.exists(os.path.abspath(destination_folder+"/"+filename))
 
