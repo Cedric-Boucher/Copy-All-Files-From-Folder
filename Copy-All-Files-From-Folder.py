@@ -9,10 +9,12 @@ import os
 from time import time
 
 
-def get_file_extensions(path: str) -> tuple[str]:
+def get_file_extensions(path) -> tuple[str]:
     """
     returns a tuple of all file extensions is a folder and subfolders
     """
+    assert (os.path.exists(path)), "path does not exist"
+
     file_extensions = list()
 
     for _, _, files in os.walk(os.path.abspath(path)):
@@ -25,7 +27,7 @@ def get_file_extensions(path: str) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_num_files_in_folder(path: str, file_extensions: tuple[str] = (), start_with: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
+def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
     """
     Counts the number of files in a directory and subdirectories using os.walk
     set print_stats_every_x_seconds to -1 to never print
@@ -34,6 +36,7 @@ def get_num_files_in_folder(path: str, file_extensions: tuple[str] = (), start_w
     if they are set, only files that match all of those conditions will be counted
     file_extensions is just an endswith check, so I reccomend including the period
     """
+    assert (os.path.exists(path)), "path does not exist"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
     assert (type(start_with) == tuple), "start_with was not a tuple"
 
@@ -64,6 +67,17 @@ def progress_bar(progress: float, length: int, start_string = "~<{", end_string 
     length is character count length of progress bar (not including start and end strings)
     no newline is printed after the progress bar
     """
+    assert (type(progress) == float), "type of progress was not float"
+    assert (type(length) == int), "type of length was not int"
+    assert (progress <= 1), "progress was greater than 1"
+    assert (length > 0), "length was negative"
+    assert (type(start_string) == str), "start_string was not string"
+    assert (type(end_string) == str), "end_string was not string"
+    assert (type(fill_char) == str), "fill_char was not string"
+    assert (len(fill_char) == 1), "len(fill_char) was not 1"
+    assert (type(empty_char) == str), "empty_char was not string"
+    assert (len(empty_char) == 1), "len(empty_char) was not 1"
+
     output_string = start_string
     progress_character_count = int(progress*length)
     output_string += progress_character_count * fill_char
@@ -79,7 +93,7 @@ def progress_bar(progress: float, length: int, start_string = "~<{", end_string 
     return None
 
 
-def move_files(input_folder: str, output_folder: str = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> int:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> int:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -89,12 +103,12 @@ def move_files(input_folder: str, output_folder: str = None, file_extensions: tu
     
     returns number of errors, prints progress
     """
-    assert (move_mode in ["C", "M"]), "move_mode was not 'C' or 'M'"
+    assert (move_mode in ["C", "M", "T", "D"]), "move_mode was not one of the options"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
     assert (type(start_with) == tuple), "start_with was not a tuple"
-    assert (type(input_folder) == str), "input_folder was not string"
+    assert (os.path.exists(input_folder)), "input_folder does not exist"
     if move_mode in ["C", "M"]:
-        assert (type(output_folder) == str), "output_folder was not string"
+        assert (os.path.exists(output_folder)), "output_folder does not exist"
 
     number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions)
     number_of_files_processed = 0
@@ -142,7 +156,7 @@ def move_files(input_folder: str, output_folder: str = None, file_extensions: tu
     return error_count
 
 
-def move_file_error(source_file_path: str, destination_folder: str, filename: str, move_mode: str = "C", max_retries = 100) -> None:
+def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> None:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
@@ -150,6 +164,9 @@ def move_file_error(source_file_path: str, destination_folder: str, filename: st
     returns True for resolved or False for not resolved
     """
     assert (move_mode in ["C", "M"]), "move_mode invalid for error handling"
+    assert (os.path.exists(source_file_path)), "source_file_path does not exist"
+    assert (os.path.exists(destination_folder)), "destination_folder does not exist"
+    assert (type(filename) == str), "filename was not string"
 
     error_is_filename_conflict = os.path.exists(os.path.abspath(destination_folder+"/"+filename))
 
