@@ -1,6 +1,4 @@
 """
-VERSION 0.1
-
 compatible with config files versioned V0.1
 """
 from shutil import copy2, move, Error
