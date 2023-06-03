@@ -239,7 +239,7 @@ def main() -> None:
         else:
             file_extensions = tuple(file_extensions.split(" "))
 
-        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, move_mode)) + " errors")
+        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, move_mode=move_mode)) + " errors")
 
     return None
 
