@@ -242,7 +242,7 @@ def main() -> None:
     print("")
 
     if read_config_or_not.upper() == "Y":
-        with open("Copy-All_Files-From-Folder_V0.3.config", "r") as file:
+        with open("Copy-All-Files-From-Folder_V0.3.config", "r") as file:
             file_lines: list[str] = file.readlines()
         # done reading file
 
