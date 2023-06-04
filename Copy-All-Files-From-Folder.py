@@ -226,6 +226,7 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 def remove_comment_from_input(input: str) -> str:
     return input.split("#")[0]
 
+
 def string_to_tuple(string: str, delimiter: str = " ") -> tuple[str]:
     """
     if string is empty, will return empty tuple,
@@ -235,6 +236,30 @@ def string_to_tuple(string: str, delimiter: str = " ") -> tuple[str]:
         return tuple()
     else:
         return tuple(string.split(delimiter))
+
+
+class ETA:
+    def __init__(self):
+        self.__start_time = time()
+        self.__time_remaining = -1 # not defined yet
+    
+    def __update(self, progress: float):
+        """
+        updates self.time_remaining
+        progress should be float [0, 1]
+        """
+        assert (type(progress) == float), "progress was not float"
+        assert (0 <= progress <= 1), "progress was not [0, 1]"
+        time_delta = (time() - self.__start_time)
+        estimated_total_time = (time_delta / progress)
+        self.__time_remaining = (estimated_total_time - time_delta)
+
+    def get_time_remaining(self):
+        """
+        getter for self.time_remaining
+        """
+        self.__update()
+        return self.__time_remaining
 
 
 def main() -> None:
