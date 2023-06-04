@@ -1,5 +1,5 @@
 """
-compatible with config files versioned V0.2
+compatible with config files versioned V0.3
 """
 from shutil import copy2, move, Error
 from send2trash import send2trash
@@ -223,39 +223,67 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
     return False # in case somehow code gets to here, error was clearly not resolved
 
 
-def main() -> None:
-    get_file_extensions_or_run_program = input("Get File Extensions? (Y, anything else runs program normally):\n").split("#")[0]
-    print("")
-    if get_file_extensions_or_run_program.upper() == "Y":
-        print(get_file_extensions(input("Folder to get file extensions list from:\n").split("#")[0]))
+def remove_comment_from_input(input: str) -> str:
+    return input.split("#")[0]
 
+def string_to_tuple(string: str, delimiter: str = " ") -> tuple[str]:
+    """
+    if string is empty, will return empty tuple,
+    else will do what you expect it to do
+    """
+    if string == "":
+        return tuple()
     else:
-        input_folder = input("Input Folder (all files with specified extensions will be copied/moved from this folder and all subfolders):\n").split("#")[0]
-        print("")
+        return tuple(string.split(delimiter))
 
-        output_folder = input("Output Folder (all files will be copied/moved into this directory, not necessary for trash or deletion):\n").split("#")[0]
-        print("")
 
-        file_extensions = input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n").split("#")[0]
-        print("")
+def main() -> None:
+    read_config_or_not = input("Read config file (Y) or enter properties manually (anything else)?:\n").split("#")[0]
+    print("")
 
-        file_starts = input("File beginnings to copy/move (space separated, ex: '.'):\n").split("#")[0]
-        print("")
+    if read_config_or_not.upper() == "Y":
+        with open("Copy-All-Files-From-Folder_V0.3.config", "r") as file:
+            file_lines: list[str] = file.readlines()
+        # done reading file
 
-        move_mode = input("Copy, Move, Trash, or permanently Delete? (M for Move, C for Copy, T for Trash, D for PERMANENTLY DELETE):\n").split("#")[0]
-        print("")
+        # assign each line to correct variable while removing comments
+        get_file_extensions_or_run_program = remove_comment_from_input(file_lines[0])
+        input_folder = remove_comment_from_input(file_lines[1])
 
-        if file_extensions == "":
-            file_extensions = tuple()
+        if get_file_extensions_or_run_program.upper() == "Y":
+            print(get_file_extensions(input_folder))
+
         else:
-            file_extensions = tuple(file_extensions.split(" "))
+            output_folder = remove_comment_from_input(file_lines[2])
+            file_extensions = string_to_tuple(remove_comment_from_input(file_lines[3]), " ") # remove comment and convert to tuple[str]
+            file_starts = string_to_tuple(remove_comment_from_input(file_lines[4]), " ") # remove comment and convert to tuple[str]
+            move_mode = remove_comment_from_input(file_lines[5])
 
-        if file_starts == "":
-            file_starts = tuple()
+            print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
+
+    else: # user inputs, not config file
+        get_file_extensions_or_run_program = remove_comment_from_input(input("Get File Extensions? (Y, anything else runs program normally):\n"))
+        print("")
+
+        if get_file_extensions_or_run_program.upper() == "Y":
+            print(get_file_extensions(remove_comment_from_input(input("Folder to get file extensions list from:\n"))))
+
         else:
-            file_starts = tuple(file_starts.split(" "))
+            input_folder = remove_comment_from_input(input("Input Folder (all files with specified extensions will be copied/moved from this folder and all subfolders):\n"))
+            print("")
+            output_folder = remove_comment_from_input(input("Output Folder (all files will be copied/moved into this directory, not necessary for trash or deletion):\n"))
+            print("")
+            file_extensions = remove_comment_from_input(input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n"))
+            print("")
+            file_starts = remove_comment_from_input(input("File beginnings to copy/move (space separated, ex: '.'):\n"))
+            print("")
+            move_mode = remove_comment_from_input(input("Copy, Move, Trash, or permanently Delete? (M for Move, C for Copy, T for Trash, D for PERMANENTLY DELETE):\n"))
+            print("")
 
-        print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
+            file_extensions = string_to_tuple(file_extensions, " ")
+            file_starts = string_to_tuple(file_starts, " ")
+
+            print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
 
     return None
 
