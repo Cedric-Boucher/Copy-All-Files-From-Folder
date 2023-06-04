@@ -128,6 +128,8 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     assert (type(start_with) == tuple), "start_with was not a tuple"
     assert (os.path.exists(input_folder)), "input_folder does not exist"
 
+    progress_bar_object = progress_bar(100) # created progress bar object
+
     if move_mode in ["C", "M"]:
         if not os.path.exists(output_folder):
             try:
@@ -176,7 +178,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             except: # unknown error
                 error_count += 1
             number_of_files_processed += 1
-            progress_bar(number_of_files_processed/number_of_files_total, 100)
+            progress_bar_object.print_progress_bar(number_of_files_processed/number_of_files_total)
 
     return error_count
 
