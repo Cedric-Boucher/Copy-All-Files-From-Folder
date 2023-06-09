@@ -303,7 +303,7 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
                 new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
                 try:
                     if move_mode == "C":
-                        copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
+                        copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # TODO see issue #13, this should not overwrite
                     else:
                         move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
                     return True # error was resolved
