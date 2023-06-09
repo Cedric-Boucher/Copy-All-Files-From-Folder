@@ -59,13 +59,47 @@ def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: 
     return num_files
 
 
+def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
+    """
+    gets the sum of all file sizes in path and all subfolders, that match file_extensions and start_with
+    set print_stats_every_x_seconds to -1 to never print
+    if file_extensions is an empty tuple, will not check file extensions,
+    if start_with is an empty tuple, will not check what a filename starts with.
+    if they are set, only files that match all of those conditions will be counted
+    file_extensions is just an endswith check, so I reccomend including the period
+    """
+    assert (os.path.exists(path)), "path does not exist"
+    assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
+    assert (type(start_with) == tuple), "start_with was not a tuple"
+
+    if len(file_extensions) == 0:
+        file_extensions = "" # all strings end with ""
+
+    if len(start_with) == 0:
+        start_with = "" # all strings start with ""
+
+    total_size = 0
+    t = time()
+    if print_stats_every_x_seconds != -1:
+        print("\nChecking size of path "+str(path)+"...\n")
+    for _, _, files in os.walk(os.path.abspath(path)):
+        for file in files:
+            if file.endswith(file_extensions) and file.startswith(start_with):
+                total_size += os.stat(os.path.abspath(path+"/"+file))[6] # bytes filesize
+        if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
+            print("\r{} bytes...".format(total_size), end="")
+            t = time()
+
+    return total_size
+
+
 class progress_bar:
     """
     progress is float [0, 1]
     length is character count length of progress bar (not including start and end strings)
     no newline is printed after the progress bar
     """
-    def __init__(self, length: int, start_string = "~<{", end_string = "}>~", fill_char = "/", empty_char = "-", with_percentage = True, with_ETA = True):
+    def __init__(self, length: int, start_string = "~<{", end_string = "}>~", fill_char = "/", empty_char = "-", with_percentage = True, with_ETA = True, with_rate = True, rate_units = ""):
         assert (type(length) == int), "type of length was not int"
         assert (length > 0), "length was negative"
         assert (type(start_string) == str), "start_string was not string"
@@ -74,6 +108,8 @@ class progress_bar:
         assert (len(fill_char) == 1), "len(fill_char) was not 1"
         assert (type(empty_char) == str), "empty_char was not string"
         assert (len(empty_char) == 1), "len(empty_char) was not 1"
+        if with_rate:
+            assert(type(rate_units) == str), "rate units was not a string"
 
         self.__length = length
         self.__start_string = start_string
@@ -82,6 +118,8 @@ class progress_bar:
         self.__empty_char = empty_char
         self.__with_percentage = with_percentage
         self.__with_ETA = with_ETA
+        self.__with_rate = with_rate
+        self.__rate_units = rate_units
         self.__ETA = None # don't start the ETA stopwatch until first update
 
         self.__output_string = "" # not defined yet
@@ -89,9 +127,10 @@ class progress_bar:
         return None
 
 
-    def __update_output_string(self, progress: float) -> None:
+    def __update_output_string(self, progress: float, rate_progress: float = None) -> None:
         assert (type(progress) == float), "type of progress was not float"
         assert (progress <= 1), "progress was greater than 1"
+        assert (type(rate_progress) in [float, int] or rate_progress is None), "rate_progress was not None or float/int"
 
         output_string = self.__start_string
         progress_character_count = int(progress*self.__length)
@@ -103,13 +142,25 @@ class progress_bar:
         if self.__with_ETA:
             if self.__ETA is None:
                 self.__ETA = ETA() # start ETA stopwatch on first update
-            output_string += " {} remaining".format(seconds_to_time(self.__ETA.get_time_remaining(progress)))
+            output_string += " | {} remaining".format(seconds_to_time(self.__ETA.get_time_remaining(progress)))
+        if self.__with_rate and rate_progress is not None:
+            try:
+                output_string += " | {:8.2f} {}/s".format(rate_progress/self.__ETA.get_time_since_init(), self.__rate_units)
+            except ZeroDivisionError:
+                output_string += " | {} {}/s".format("N/A", self.__rate_units)
 
         self.__output_string = output_string
         return None
     
-    def print_progress_bar(self, progress) -> None:
-        self.__update_output_string(progress)
+    def print_progress_bar(self, progress: float, rate_progress: float = None) -> None:
+        """
+        progress is [0, 1],
+        rate_progress and rate units are only used if this object was initialized with with_rate = True,
+        example of rate progress and rate units:
+        rate_progress = 80.4 (total MB processed)
+        rate_units = "MB" (units of MB, athis method will divide by seconds, don't worry)
+        """
+        self.__update_output_string(progress, rate_progress)
         print("\r" + self.__output_string, end="")
 
 
@@ -128,7 +179,18 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     assert (type(start_with) == tuple), "start_with was not a tuple"
     assert (os.path.exists(input_folder)), "input_folder does not exist"
 
-    progress_bar_object = progress_bar(100) # created progress bar object
+    same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
+    if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
+        # copy / move time is mainly based on raw MB/s throughput of drives
+        rate_units = "MB"
+    else:
+        # basically just changing a few bytes in the filesystem per file,
+        # move time is based on seek time and is constant regardless of file size
+        rate_units = "files"
+
+
+    progress_bar_object = progress_bar(100, rate_units=rate_units) # created progress bar object
+    progress = 0
 
     if move_mode in ["C", "M"]:
         if not os.path.exists(output_folder):
@@ -140,6 +202,9 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     number_of_files_processed = 0
     error_count = 0
+
+    total_size = get_size_of_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
+    total_processed_size = 0
 
     if move_mode == "C":
         print("Copying Files from \"{}\" to \"{}\"".format(input_folder, output_folder))
@@ -162,6 +227,8 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
         for file in files_with_valid_extension_and_start:
             source_file_path = os.path.abspath(path+"/"+file)
+            total_processed_size += os.stat(source_file_path)[6] # bytes filesize
+            output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file)) # TODO see issue #13
             try:
                 if move_mode == "C":
                     copy2(source_file_path, output_folder)
@@ -178,7 +245,18 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             except: # unknown error
                 error_count += 1
             number_of_files_processed += 1
-            progress_bar_object.print_progress_bar(number_of_files_processed/number_of_files_total)
+
+            if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
+                # copy / move time is mainly based on raw MB/s throughput of drives
+                progress = total_processed_size / total_size
+                rate_progress = total_processed_size / (10**6)
+            else:
+                # basically just changing a few bytes in the filesystem per file,
+                # move time is based on seek time and is constant regardless of file size
+                progress = number_of_files_processed/number_of_files_total
+                rate_progress = number_of_files_processed
+
+            progress_bar_object.print_progress_bar(progress, rate_progress)
 
     return error_count
 
@@ -286,6 +364,9 @@ class ETA:
         """
         self.__update(progress)
         return self.__time_remaining
+    
+    def get_time_since_init(self) -> float:
+        return time() - self.__start_time
 
 
 def seconds_to_time(secs: float) -> str:
@@ -299,7 +380,7 @@ def seconds_to_time(secs: float) -> str:
     days = int(secs//86400%365) # one day is 86400 seconds, so mod the time by seconds in a day, then take the remainder after removing days above 365
     years = int(secs//31536000) # one year is 31536000 seconds, so mod the time by seconds in a year
 
-    output_string = "{:2d} years, {:3d} days, {:2d} hours, {:2d} minutes, {:6.2f} seconds".format(years, days, hours, minutes, seconds)
+    output_string = "{:2d} years, {:3d} days, {:2d} hours, {:2d} minutes, {:5.2f} seconds".format(years, days, hours, minutes, seconds)
 
     return output_string
 
