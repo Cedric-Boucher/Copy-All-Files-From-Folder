@@ -91,7 +91,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                     send2trash(source_file_path)
                 elif move_mode == "D":
                     os.remove(source_file_path)
-            except Error: # happens if destination path/filename combo exists already
+            except Error: # this shouldn't happen, and the line below is unlikely to fix it
                 success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
                 if not success:
                     error_count += 1
