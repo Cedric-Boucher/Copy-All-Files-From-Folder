@@ -80,13 +80,13 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                         copy2(source_file_path, output_folder)
                     else:
                         # if file already exists, check if it's the same file, etc
-                        move_file_error(source_file_path, output_folder, file, move_mode)
+                        success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
                 elif move_mode == "M":
                     if not output_file_exists:
                         move(source_file_path, output_folder)
                     else:
                         # if file already exists, you can trash this copy
-                        send2trash(source_file_path)
+                        success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
                 elif move_mode == "T":
                     send2trash(source_file_path)
                 elif move_mode == "D":
