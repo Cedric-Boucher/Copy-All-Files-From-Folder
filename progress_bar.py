@@ -1,5 +1,5 @@
-import ETA
-import seconds_to_time
+from ETA import ETA
+from seconds_to_time import seconds_to_time
 
 
 class progress_bar:
