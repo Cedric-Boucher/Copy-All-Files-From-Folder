@@ -4,7 +4,7 @@ compatible with config files versioned V0.3
 from shutil import copy2, move, Error
 from send2trash import send2trash
 import os
-import progress_bar
+from progress_bar import progress_bar
 from file_folder_getters import *
 
 
@@ -72,12 +72,21 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         for file in files_with_valid_extension_and_start:
             source_file_path = os.path.abspath(path+"/"+file)
             total_processed_size += os.stat(source_file_path)[6] # bytes filesize
-            output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file)) # TODO see issue #13
+            if move_mode in ["C", "M"]:
+                output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file)) # TODO see issue #13
             try:
                 if move_mode == "C":
-                    copy2(source_file_path, output_folder)
+                    if not output_file_exists:
+                        copy2(source_file_path, output_folder)
+                    else:
+                        # if file already exists, check if it's the same file, etc
+                        move_file_error(source_file_path, output_folder, file, move_mode)
                 elif move_mode == "M":
-                    move(source_file_path, output_folder)
+                    if not output_file_exists:
+                        move(source_file_path, output_folder)
+                    else:
+                        # if file already exists, you can trash this copy
+                        send2trash(source_file_path)
                 elif move_mode == "T":
                     send2trash(source_file_path)
                 elif move_mode == "D":
@@ -105,7 +114,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     return error_count
 
 
-def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> None:
+def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> bool:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
@@ -127,46 +136,68 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
     if error_is_filename_conflict:
         # check if files are the same
         source_file_stats = os.stat(source_file_path)
+
         destination_file_stats = os.stat(os.path.abspath(destination_folder+"/"+filename))
 
         source_size = source_file_stats.st_size
         destination_size = destination_file_stats.st_size
         is_size_identical = (source_size == destination_size)
 
+        if is_size_identical:
+            # assumed to be the same file, original can be safely moved to trash
+            if move_mode == "M":
+                send2trash(source_file_path)
+            # if move mode was copy then do nothing
+            return True
+
+        for retry_count in range(max_retries):
+            # retry up to 100 times to copy file with new filename
+            new_filename_parts = filename.split(".")
+            new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
+            destination_exists = os.path.exists(os.path.abspath(destination_folder+"/"+new_filename))
+
+            if not destination_exists:
+                break # new_filename can be used
+
+            destination_file_stats = os.stat(os.path.abspath(destination_folder+"/"+new_filename))
+
+            source_size = source_file_stats.st_size
+            destination_size = destination_file_stats.st_size
+            is_size_identical = (source_size == destination_size)
+
+            if is_size_identical:
+                # assumed to be the same file, original can be safely moved to trash
+                if move_mode == "M":
+                    send2trash(source_file_path)
+                # if move mode was copy then do nothing
+                return True
+        
+        if destination_exists and not is_size_identical:
+            # this means we went through all the retry attempts
+            # and couldn't find somewhere to put source file,
+            # so we gave up
+            return False
+
         # this code will assume that if you have a filename conflict where both files have:
         # - same size in bytes
         # that these are the same file. It's unlikely that they aren't, that, well, I'm not going to run a checksum
         # I previously had date checks but they were unreliable and resulted in duplicated files
 
-        if (not is_size_identical):
-            # at least one thing is different about the files, so they are not the same file
-            # in that case, simply rename the file (and retry with a different number until success)
-            for retry_count in range(max_retries):
-                # retry up to 100 times to copy file with new filename
-                new_filename_parts = filename.split(".")
-                new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
-                try:
-                    if move_mode == "C":
-                        copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # TODO see issue #13, this should not overwrite
-                    else:
-                        move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename))
-                    return True # error was resolved
-                except Error: # happens if destination path/filename combo exists already
-                    pass
-
-        else:
-            # the files are identical in size, modification date, and creation date,
-            # we assume they are the same file, so we can move the source file to trash
-            # and keep the destination file where it is, if set to move. if copy then do nothing.
-            if move_mode == "M":
-                send2trash(source_file_path)
+        # if we get here, then the destination did not contain a copy of this file,
+        # so we use new_filename to copy/move the source file
+        try:
+            if move_mode == "C":
+                copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
+            else:
+                move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
             return True # error was resolved
-    
-    else:
+        except Error:
+            # couldn't resolve the issue for some reason
+            return False
+
+    else: # if error was not filename conflict
         # for now I don't know what else the error could be
         return False # error was not resolved
-
-    return False # in case somehow code gets to here, error was clearly not resolved
 
 
 def remove_comment_from_input(input: str) -> str:
