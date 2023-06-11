@@ -70,10 +70,11 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     for path, _, files in os.walk(os.path.abspath(input_folder)):
         files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
         for file in files_with_valid_extension_and_start:
+            success = True # reset to assume true if no problems happen
             source_file_path = os.path.abspath(path+"/"+file)
             total_processed_size += os.stat(source_file_path)[6] # bytes filesize
             if move_mode in ["C", "M"]:
-                output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file)) # TODO see issue #13
+                output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file))
             try:
                 if move_mode == "C":
                     if not output_file_exists:
@@ -81,12 +82,16 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                     else:
                         # if file already exists, check if it's the same file, etc
                         success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
+                        if not success:
+                            error_count += 1
                 elif move_mode == "M":
                     if not output_file_exists:
                         move(source_file_path, output_folder)
                     else:
                         # if file already exists, you can trash this copy
                         success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
+                        if not success:
+                            error_count += 1
                 elif move_mode == "T":
                     send2trash(source_file_path)
                 elif move_mode == "D":
@@ -97,7 +102,18 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                     error_count += 1
             except: # unknown error
                 error_count += 1
+                success = False
             number_of_files_processed += 1
+
+            # Issue #13 there is still a bug where success is true but for the if statement below we would like it to be false,
+            # this will probably be fixed as a result of Issue #6 (TODO)
+
+            # if there was a failure, update the progress accordingly
+            if not success:
+                number_of_files_processed -= 1
+                number_of_files_total -= 1
+                total_processed_size -= os.stat(source_file_path)[6]
+                total_size -= os.stat(source_file_path)[6]
 
             if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
                 # copy / move time is mainly based on raw MB/s throughput of drives
