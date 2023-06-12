@@ -45,7 +45,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     number_of_files_processed = 0
-    error_counts = [0 for _ in range(5)] # range of number of possible error codes in move_file_error()
+    error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
 
     total_size = get_size_of_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     total_processed_size = 0
