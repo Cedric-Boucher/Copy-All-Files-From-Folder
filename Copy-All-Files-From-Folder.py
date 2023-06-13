@@ -8,7 +8,7 @@ from progress_bar import progress_bar
 from file_folder_getters import *
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> int:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -16,7 +16,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     if file_extensions/start_with is empty tuple then all file extensions will be copied/moved
     
-    returns number of errors, prints progress
+    returns the errors
     """
     assert (move_mode in ["C", "M", "T", "D"]), "move_mode was not one of the options"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
@@ -67,12 +67,14 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     if len(start_with) == 0:
         start_with = "" # all strings start with ""
 
+
     for path, _, files in os.walk(os.path.abspath(input_folder)):
         files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
         for file in files_with_valid_extension_and_start:
-            success = (0, "") # reset to assume no problems happen
+            success = (-1, "") # reset to assume no problems happen
             source_file_path = os.path.abspath(path+"/"+file)
-            total_processed_size += os.stat(source_file_path)[6] # bytes filesize
+            current_filesize = os.stat(source_file_path)[6] # bytes filesize
+            total_processed_size += current_filesize
             if move_mode in ["C", "M"]:
                 output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file))
             try:
@@ -101,16 +103,16 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                 error_counts[5] += 1
             number_of_files_processed += 1
 
-            # Issue #13 there is still a bug where success is true but for the if statement below we would like it to be false,
-            # this will probably be fixed as a result of Issue #6 (TODO)
 
             # if there was a failure, update the progress accordingly
             if success[0] in (0, 1, 3, 5):
                 number_of_files_processed -= 1
                 number_of_files_total -= 1
-                total_processed_size -= os.stat(source_file_path)[6]
-                total_size -= os.stat(source_file_path)[6]
+                total_processed_size -= current_filesize
+                total_size -= current_filesize
 
+
+            # update progress
             if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
                 # copy / move time is mainly based on raw MB/s throughput of drives
                 progress = total_processed_size / total_size
@@ -123,7 +125,13 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
             progress_bar_object.print_progress_bar(progress, rate_progress)
 
-    return error_counts
+    # process error_counts to only return what errors did happen:
+    error_return: list[tuple] = list()
+    for error_number in range(len(error_counts)):
+        if error_counts[error_number] > 0:
+            error_return.append((error_number, error_counts[error_number]))
+
+    return error_return
 
 
 def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> tuple[int, str]:
@@ -282,7 +290,7 @@ def main() -> None:
             file_extensions = string_to_tuple(file_extensions, " ")
             file_starts = string_to_tuple(file_starts, " ")
 
-            print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
+            print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)))
 
     return None
 
