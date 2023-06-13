@@ -76,10 +76,10 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
     t = time()
     if print_stats_every_x_seconds != -1:
         print("\nChecking size of path "+str(path)+"...\n")
-    for _, _, files in os.walk(os.path.abspath(path)):
+    for parent_path, _, files in os.walk(os.path.abspath(path)):
         for file in files:
             if file.endswith(file_extensions) and file.startswith(start_with):
-                total_size += os.stat(os.path.abspath(path+"/"+file))[6] # bytes filesize
+                total_size += os.stat(os.path.abspath(parent_path+"/"+file))[6] # bytes filesize
         if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
             print("\r{} bytes...".format(total_size), end="")
             t = time()

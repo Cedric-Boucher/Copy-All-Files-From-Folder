@@ -15,7 +15,10 @@ class ETA:
         assert (type(progress) == float), "progress was not float"
         assert (0 <= progress <= 1), "progress was not [0, 1]"
         time_delta = (time() - self.__start_time)
-        estimated_total_time = (time_delta / progress)
+        if progress != 0:
+            estimated_total_time = (time_delta / progress)
+        else:
+            estimated_total_time = 2**63 # unnecessarily large number
         self.__time_remaining = (estimated_total_time - time_delta)
         return None
 

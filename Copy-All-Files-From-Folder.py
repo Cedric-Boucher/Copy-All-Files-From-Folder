@@ -8,7 +8,7 @@ from progress_bar import progress_bar
 from file_folder_getters import *
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> int:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -16,7 +16,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     if file_extensions/start_with is empty tuple then all file extensions will be copied/moved
     
-    returns number of errors, prints progress
+    returns the errors
     """
     assert (move_mode in ["C", "M", "T", "D"]), "move_mode was not one of the options"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
@@ -45,7 +45,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     number_of_files_processed = 0
-    error_count = 0
+    error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
 
     total_size = get_size_of_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     total_processed_size = 0
@@ -67,12 +67,14 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     if len(start_with) == 0:
         start_with = "" # all strings start with ""
 
+
     for path, _, files in os.walk(os.path.abspath(input_folder)):
         files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
         for file in files_with_valid_extension_and_start:
-            success = True # reset to assume true if no problems happen
+            success = (-1, "") # reset to assume no problems happen
             source_file_path = os.path.abspath(path+"/"+file)
-            total_processed_size += os.stat(source_file_path)[6] # bytes filesize
+            current_filesize = os.stat(source_file_path)[6] # bytes filesize
+            total_processed_size += current_filesize
             if move_mode in ["C", "M"]:
                 output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file))
             try:
@@ -81,40 +83,36 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                         copy2(source_file_path, output_folder)
                     else:
                         # if file already exists, check if it's the same file, etc
-                        success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
-                        if not success:
-                            error_count += 1
+                        success = move_file_error(source_file_path, output_folder, file, move_mode)
+                        error_counts[success[0]] += 1
                 elif move_mode == "M":
                     if not output_file_exists:
                         move(source_file_path, output_folder)
                     else:
                         # if file already exists, you can trash this copy
-                        success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
-                        if not success:
-                            error_count += 1
+                        success = move_file_error(source_file_path, output_folder, file, move_mode)
+                        error_counts[success[0]] += 1
                 elif move_mode == "T":
                     send2trash(source_file_path)
                 elif move_mode == "D":
                     os.remove(source_file_path)
             except Error: # this shouldn't happen, and the line below is unlikely to fix it
-                success: bool = move_file_error(source_file_path, output_folder, file, move_mode)
-                if not success:
-                    error_count += 1
+                success = move_file_error(source_file_path, output_folder, file, move_mode)
+                error_counts[success[0]] += 1
             except: # unknown error
-                error_count += 1
-                success = False
+                error_counts[5] += 1
             number_of_files_processed += 1
 
-            # Issue #13 there is still a bug where success is true but for the if statement below we would like it to be false,
-            # this will probably be fixed as a result of Issue #6 (TODO)
 
             # if there was a failure, update the progress accordingly
-            if not success:
+            if success[0] in (0, 1, 3, 5):
                 number_of_files_processed -= 1
                 number_of_files_total -= 1
-                total_processed_size -= os.stat(source_file_path)[6]
-                total_size -= os.stat(source_file_path)[6]
+                total_processed_size -= current_filesize
+                total_size -= current_filesize
 
+
+            # update progress
             if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
                 # copy / move time is mainly based on raw MB/s throughput of drives
                 progress = total_processed_size / total_size
@@ -127,19 +125,32 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
             progress_bar_object.print_progress_bar(progress, rate_progress)
 
-    return error_count
+    # process error_counts to only return what errors did happen:
+    error_return: list[tuple] = list()
+    for error_number in range(len(error_counts)):
+        if error_counts[error_number] > 0:
+            error_return.append((error_number, error_counts[error_number]))
+
+    return error_return
 
 
-def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> bool:
+def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> tuple[int, str]:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
 
-    returns True for resolved or False for not resolved
+    returns a pair of error number and accompanying string to explain the error
     """
     assert (move_mode in ["C", "M"]), "move_mode invalid for error handling"
     assert (os.path.exists(source_file_path)), "source_file_path does not exist"
     assert (type(filename) == str), "filename was not string"
+
+    errors: list[tuple[int, str]] = [(0, "File already existed and nothing was changed"),
+                                     (1, "File already existed and extra copy was trashed"),
+                                     (2, "File was renamed and copied/moved"),
+                                     (3, "Couldn't find a filename that worked, gave up"),
+                                     (4, "File was renamed to resolve conflict"),
+                                     (5, "Error couldn't be resolved")]
 
     if not os.path.exists(destination_folder):
         try:
@@ -163,8 +174,9 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
             # assumed to be the same file, original can be safely moved to trash
             if move_mode == "M":
                 send2trash(source_file_path)
+                return errors[1]
             # if move mode was copy then do nothing
-            return True
+            return errors[0]
 
         for retry_count in range(max_retries):
             # retry up to 100 times to copy file with new filename
@@ -185,14 +197,15 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
                 # assumed to be the same file, original can be safely moved to trash
                 if move_mode == "M":
                     send2trash(source_file_path)
+                    return errors[1]
                 # if move mode was copy then do nothing
-                return True
+                return errors[0]
         
         if destination_exists and not is_size_identical:
             # this means we went through all the retry attempts
             # and couldn't find somewhere to put source file,
             # so we gave up
-            return False
+            return errors[3]
 
         # this code will assume that if you have a filename conflict where both files have:
         # - same size in bytes
@@ -206,14 +219,14 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
                 copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
             else:
                 move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
-            return True # error was resolved
+            return errors[4] # error was resolved
         except Error:
             # couldn't resolve the issue for some reason
-            return False
+            return errors[5]
 
     else: # if error was not filename conflict
         # for now I don't know what else the error could be
-        return False # error was not resolved
+        return errors[5] # error was not resolved
 
 
 def remove_comment_from_input(input: str) -> str:
@@ -277,7 +290,7 @@ def main() -> None:
             file_extensions = string_to_tuple(file_extensions, " ")
             file_starts = string_to_tuple(file_starts, " ")
 
-            print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
+            print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)))
 
     return None
 
