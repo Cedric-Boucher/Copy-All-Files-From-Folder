@@ -58,6 +58,9 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         print("Trashing Files from \"{}\"".format(input_folder))
     elif move_mode == "D":
         print("PERMANENTLY DELETING Files from \"{}\"".format(input_folder))
+        confirm_delete = (input("Are you sure you want to continue? (Y, anything else to cancel)\n") == "Y")
+        if not confirm_delete:
+            return [] # since output should be list of tuples, return empty list
 
     print("") # newline since first progress_bar() will \r
 
