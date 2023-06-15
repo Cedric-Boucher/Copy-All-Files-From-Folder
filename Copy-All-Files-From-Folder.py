@@ -8,20 +8,24 @@ from progress_bar import progress_bar
 from file_folder_getters import *
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C") -> list[tuple]:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
     output_folder should be defined for move_mode C or M, but is unused for T or D
 
     if file_extensions/start_with is empty tuple then all file extensions will be copied/moved
-    
+
+    if keep_folder_structure is False, all files in input folder and its subfolders will be dumped into the output folder,
+    this only applies for move_mode in ["C", "M"]
+
     returns the errors
     """
     assert (move_mode in ["C", "M", "T", "D"]), "move_mode was not one of the options"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
     assert (type(start_with) == tuple), "start_with was not a tuple"
     assert (os.path.exists(input_folder)), "input_folder does not exist"
+    assert (type(keep_folder_structure) == bool), "keep_folder_structure was not bool"
 
     same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
     if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
@@ -72,35 +76,50 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
 
     for path, _, files in os.walk(os.path.abspath(input_folder)):
+        path: str
         files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
         for file in files_with_valid_extension_and_start:
             success = (-1, "") # reset to assume no problems happen
             source_file_path = os.path.abspath(path+"/"+file)
             current_filesize = os.stat(source_file_path)[6] # bytes filesize
             total_processed_size += current_filesize
+
+            if keep_folder_structure:
+                relative_output_path = path.removeprefix(input_folder) # the subfolder structure inside of input_folder
+                output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
+            else:
+                output_folder_path = output_folder
+
             if move_mode in ["C", "M"]:
-                output_file_exists = os.path.exists(os.path.abspath(output_folder+"/"+file))
+                output_folder_exists = os.path.exists(output_folder_path)
+                if not output_folder_exists:
+                    try:
+                        os.makedirs(output_folder_path)
+                    except:
+                        assert (False), "destination folder didn't exist and couldn't be created"
+                output_file_exists = os.path.exists(os.path.abspath(output_folder_path+"/"+file))
+
             try:
                 if move_mode == "C":
                     if not output_file_exists:
-                        copy2(source_file_path, output_folder)
+                        copy2(source_file_path, output_folder_path)
                     else:
                         # if file already exists, check if it's the same file, etc
-                        success = move_file_error(source_file_path, output_folder, file, move_mode)
+                        success = move_file_error(source_file_path, output_folder_path, file, move_mode)
                         error_counts[success[0]] += 1
                 elif move_mode == "M":
                     if not output_file_exists:
-                        move(source_file_path, output_folder)
+                        move(source_file_path, output_folder_path)
                     else:
                         # if file already exists, you can trash this copy
-                        success = move_file_error(source_file_path, output_folder, file, move_mode)
+                        success = move_file_error(source_file_path, output_folder_path, file, move_mode)
                         error_counts[success[0]] += 1
                 elif move_mode == "T":
                     send2trash(source_file_path)
                 elif move_mode == "D":
                     os.remove(source_file_path)
             except Error: # this shouldn't happen, and the line below is unlikely to fix it
-                success = move_file_error(source_file_path, output_folder, file, move_mode)
+                success = move_file_error(source_file_path, output_folder_path, file, move_mode)
                 error_counts[success[0]] += 1
             except FileNotFoundError: # file was deleted, renamed or moved before it could be processed
                 error_counts[6] += 1
