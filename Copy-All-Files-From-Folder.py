@@ -102,6 +102,8 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             except Error: # this shouldn't happen, and the line below is unlikely to fix it
                 success = move_file_error(source_file_path, output_folder, file, move_mode)
                 error_counts[success[0]] += 1
+            except FileNotFoundError: # file was deleted, renamed or moved before it could be processed
+                error_counts[6] += 1
             except: # unknown error
                 error_counts[5] += 1
             number_of_files_processed += 1
@@ -153,7 +155,8 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
                                      (2, "File was renamed and copied/moved"),
                                      (3, "Couldn't find a filename that worked, gave up"),
                                      (4, "File was renamed to resolve conflict"),
-                                     (5, "Error couldn't be resolved")]
+                                     (5, "Error couldn't be resolved"),
+                                     (6, "File could not be found")]
 
     if not os.path.exists(destination_folder):
         try:
