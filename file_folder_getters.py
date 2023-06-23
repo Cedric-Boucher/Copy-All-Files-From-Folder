@@ -18,7 +18,7 @@ def get_file_extensions(path) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_file_extensions_unit_processor(files: list):
+def get_file_extensions_unit_processor(files: list) -> tuple[str]:
     """
     unit multithreaded processor for get_file_extenions,
     do not use by itself
