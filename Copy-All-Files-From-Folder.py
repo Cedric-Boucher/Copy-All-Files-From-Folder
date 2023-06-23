@@ -6,6 +6,9 @@ from send2trash import send2trash
 import os
 from progress_bar import progress_bar
 from file_folder_getters import *
+from concurrent.futures import ThreadPoolExecutor
+
+from time import time
 
 
 def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
@@ -272,6 +275,8 @@ def string_to_tuple(string: str, delimiter: str = " ") -> tuple[str]:
 def main() -> None:
     read_config_or_not = input("Read config file (Y) or enter properties manually (anything else)?:\n").split("#")[0]
     print("")
+    global start_time
+    start_time = time()
 
     if read_config_or_not.upper() == "Y":
         with open("Copy-All-Files-From-Folder_V0.3.config", "r") as file:
@@ -283,7 +288,7 @@ def main() -> None:
         input_folder = remove_comment_from_input(file_lines[1])
 
         if get_file_extensions_or_run_program.upper() == "Y":
-            print(get_file_extensions(input_folder))
+            get_file_extensions(input_folder)
 
         else:
             output_folder = remove_comment_from_input(file_lines[2])
@@ -322,4 +327,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
+    print("{} seconds to run".format(time() - start_time))
