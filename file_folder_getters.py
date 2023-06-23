@@ -1,5 +1,6 @@
 from time import time
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 def get_file_extensions(path) -> tuple[str]:
     """
@@ -9,14 +10,28 @@ def get_file_extensions(path) -> tuple[str]:
 
     file_extensions = list()
 
-    for _, _, files in os.walk(os.path.abspath(path)):
-        for file in files:
-            filename_parts = file.split(".")
-            file_extension = "."+filename_parts[-1]
-            if file_extension not in file_extensions:
-                file_extensions.append(file_extension)
+    with ThreadPoolExecutor() as executor:
+        for _, _, files in os.walk(os.path.abspath(path)):
+            new_file_extensions = executor.submit(get_file_extensions_unit_processor, files)
+            file_extensions.extend([extension for extension in new_file_extensions.result() if extension not in file_extensions])
 
     return tuple(file_extensions)
+
+
+def get_file_extensions_unit_processor(files: list):
+    """
+    unit multithreaded processor for get_file_extenions,
+    do not use by itself
+    """
+    file_extensions = list()
+
+    for file in files:
+        filename_parts = file.split(".")
+        file_extension = "."+filename_parts[-1]
+        if file_extension not in file_extensions:
+            file_extensions.append(file_extension)
+
+    return file_extensions
 
 
 def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
