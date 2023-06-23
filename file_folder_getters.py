@@ -34,7 +34,7 @@ def get_file_extensions_unit_processor(files: list) -> tuple[str]:
     return file_extensions
 
 
-def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
+def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
     """
     Counts the number of files in a directory and subdirectories using os.walk
     set print_stats_every_x_seconds to -1 to never print
@@ -56,16 +56,10 @@ def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: 
         start_with = "" # all strings start with ""
 
     num_files = 0
-    t = time()
-    if print_stats_every_x_seconds != -1:
-        print("\nChecking number of files for path "+str(path)+"...\n")
     for _, _, files in os.walk(os.path.abspath(path)):
         for file in files:
             if file.endswith(file_extensions) and file.startswith(start_with):
                 num_files += 1
-        if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
-            print("\r{} files...".format(num_files), end="")
-            t = time()
 
     return num_files
 
@@ -113,7 +107,7 @@ def get_num_files_in_folder_unit_processor(files: list, end_with: tuple[str], st
     return num_files
 
 
-def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = (), print_stats_every_x_seconds = -1) -> int:
+def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
     """
     gets the sum of all file sizes in path and all subfolders, that match file_extensions and start_with
     set print_stats_every_x_seconds to -1 to never print
@@ -133,16 +127,10 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
         start_with = "" # all strings start with ""
 
     total_size = 0
-    t = time()
-    if print_stats_every_x_seconds != -1:
-        print("\nChecking size of path "+str(path)+"...\n")
     for parent_path, _, files in os.walk(os.path.abspath(path)):
         for file in files:
             if file.endswith(file_extensions) and file.startswith(start_with):
                 total_size += os.stat(os.path.abspath(parent_path+"/"+file))[6] # bytes filesize
-        if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
-            print("\r{} bytes...".format(total_size), end="")
-            t = time()
 
     return total_size
 
