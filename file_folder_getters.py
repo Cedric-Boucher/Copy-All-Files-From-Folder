@@ -42,6 +42,8 @@ def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: 
     if start_with is an empty tuple, will not check what a filename starts with.
     if they are set, only files that match all of those conditions will be counted
     file_extensions is just an endswith check, so I reccomend including the period
+
+    original singlethreaded version (faster in my testing)
     """
     assert (os.path.exists(path)), "path does not exist"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
@@ -64,6 +66,49 @@ def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: 
         if time() - t >= print_stats_every_x_seconds and print_stats_every_x_seconds != -1:
             print("\r{} files...".format(num_files), end="")
             t = time()
+
+    return num_files
+
+
+def get_num_files_in_folder_multithreaded(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
+    """
+    Counts the number of files in a directory and subdirectories using os.walk
+    if file_extensions is an empty tuple, will not check file extensions,
+    if start_with is an empty tuple, will not check what a filename starts with.
+    if they are set, only files that match all of those conditions will be counted
+    file_extensions is just an endswith check, so I reccomend including the period
+
+    in my testing this has actually been significantly slower than the singlethreaded version
+    """
+    assert (os.path.exists(path)), "path does not exist"
+    assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
+    assert (type(start_with) == tuple), "start_with was not a tuple"
+
+    if len(file_extensions) == 0:
+        file_extensions = "" # all strings end with ""
+
+    if len(start_with) == 0:
+        start_with = "" # all strings start with ""
+
+    num_files = 0
+    with ThreadPoolExecutor() as executor:
+        for _, _, files in os.walk(os.path.abspath(path)):
+            new_num_files = executor.submit(get_num_files_in_folder_unit_processor, files, file_extensions, start_with)
+            num_files += new_num_files.result()
+
+    return num_files
+
+
+def get_num_files_in_folder_unit_processor(files: list, end_with: tuple[str], start_with: tuple[str]) -> int:
+    """
+    returns number of files with matching begin and end string
+    do not use on its own
+    """
+    num_files = 0
+
+    for file in files:
+        if file.endswith(end_with) and file.startswith(start_with):
+            num_files += 1
 
     return num_files
 
@@ -101,3 +146,8 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
 
     return total_size
 
+
+if __name__ == "__main__":
+    start_time = time()
+    print(get_num_files_in_folder("C:/"))
+    print("{} seconds".format(time() - start_time))
