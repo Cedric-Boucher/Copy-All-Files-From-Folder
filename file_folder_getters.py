@@ -173,6 +173,7 @@ def get_size_of_folder_multithreaded(path, file_extensions: tuple[str] = (), sta
 def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_with: tuple[str], end_with: tuple[str]) -> int:
     """
     returns the total size of the given files
+    do not use on its own
     """
     total_size = 0
 
@@ -188,5 +189,5 @@ def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_
 
 if __name__ == "__main__":
     start_time = time()
-    print(get_size_of_folder("C:/"))
+    print(get_num_files_in_folder("C:/"))
     print("{} seconds".format(time() - start_time))
