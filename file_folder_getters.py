@@ -18,7 +18,7 @@ def get_file_extensions(path) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_file_extensions_unit_processor(files: list) -> tuple[str]:
+def get_file_extensions_unit_processor(files: list[str]) -> tuple[str]:
     """
     unit multithreaded processor for get_file_extenions,
     do not use by itself
@@ -93,7 +93,7 @@ def get_num_files_in_folder_multithreaded(path, file_extensions: tuple[str] = ()
     return num_files
 
 
-def get_num_files_in_folder_unit_processor(files: list, end_with: tuple[str], start_with: tuple[str]) -> int:
+def get_num_files_in_folder_unit_processor(files: list[str], end_with: tuple[str], start_with: tuple[str]) -> int:
     """
     returns number of files with matching begin and end string
     do not use on its own
@@ -127,15 +127,31 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
         start_with = "" # all strings start with ""
 
     total_size = 0
-    for parent_path, _, files in os.walk(os.path.abspath(path)):
-        for file in files:
-            if file.endswith(file_extensions) and file.startswith(start_with):
+    with ThreadPoolExecutor() as executor:
+        for parent_path, _, files in os.walk(os.path.abspath(path)):
+            new_folder_size = executor.submit(get_size_of_folder_unit_processor, files, parent_path, start_with, file_extensions)
+            total_size += new_folder_size.result()
+
+    return total_size
+
+
+def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_with: tuple[str], end_with: tuple[str]) -> int:
+    """
+    returns the total size of the given files
+    """
+    total_size = 0
+
+    for file in files:
+        if file.endswith(end_with) and file.startswith(start_with):
+            try:
                 total_size += os.stat(os.path.abspath(parent_path+"/"+file))[6] # bytes filesize
+            except OSError: # tried to access a restricted file
+                pass
 
     return total_size
 
 
 if __name__ == "__main__":
     start_time = time()
-    print(get_num_files_in_folder("C:/"))
+    print(get_size_of_folder("C:/"))
     print("{} seconds".format(time() - start_time))
