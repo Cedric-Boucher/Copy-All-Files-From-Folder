@@ -78,71 +78,24 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         start_with = "" # all strings start with ""
 
 
-    for path, _, files in os.walk(os.path.abspath(input_folder)):
-        path: str
-        files_with_valid_extension_and_start = (file for file in files if (file.endswith(file_extensions) and file.startswith(start_with)))
-        for file in files_with_valid_extension_and_start:
-            success = (-1, "") # reset to assume no problems happen
-            source_file_path = os.path.abspath(path+"/"+file)
-            current_filesize = os.stat(source_file_path)[6] # bytes filesize
-            total_processed_size += current_filesize
-
-            if keep_folder_structure:
-                relative_output_path = path.removeprefix(input_folder) # the subfolder structure inside of input_folder
-                output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
-            else:
-                output_folder_path = output_folder
-
-            if move_mode in ["C", "M"]:
-                output_folder_exists = os.path.exists(output_folder_path)
-                if not output_folder_exists:
-                    try:
-                        os.makedirs(output_folder_path)
-                    except:
-                        assert (False), "destination folder didn't exist and couldn't be created"
-                output_file_exists = os.path.exists(os.path.abspath(output_folder_path+"/"+file))
-
-            try:
-                if move_mode == "C":
-                    if not output_file_exists:
-                        copy2(source_file_path, output_folder_path)
-                    else:
-                        # if file already exists, check if it's the same file, etc
-                        success = move_file_error(source_file_path, output_folder_path, file, move_mode)
-                        error_counts[success[0]] += 1
-                elif move_mode == "M":
-                    if not output_file_exists:
-                        move(source_file_path, output_folder_path)
-                    else:
-                        # if file already exists, you can trash this copy
-                        success = move_file_error(source_file_path, output_folder_path, file, move_mode)
-                        error_counts[success[0]] += 1
-                elif move_mode == "T":
-                    send2trash(source_file_path)
-                elif move_mode == "D":
-                    os.remove(source_file_path)
-            except Error: # this shouldn't happen, and the line below is unlikely to fix it
-                success = move_file_error(source_file_path, output_folder_path, file, move_mode)
-                error_counts[success[0]] += 1
-            except FileNotFoundError: # file was deleted, renamed or moved before it could be processed
-                error_counts[6] += 1
-            except: # unknown error
-                error_counts[5] += 1
-            number_of_files_processed += 1
-
-
-            # if there was a failure, update the progress accordingly
-            if success[0] in (0, 1, 3, 5):
-                number_of_files_processed -= 1
-                number_of_files_total -= 1
-                total_processed_size -= current_filesize
-                total_size -= current_filesize
-
+    with ThreadPoolExecutor() as executor:
+        for path, _, files in os.walk(os.path.abspath(input_folder)):
+            unit_output = executor.submit(move_files_unit_processor, files, path, input_folder, output_folder, start_with, file_extensions, move_mode, keep_folder_structure)
+            (new_error_counts, new_number_of_files_processed, number_of_failed_files, new_total_processed_size, failed_files_size) = unit_output.result()
+            number_of_files_total -= number_of_failed_files
+            total_size -= failed_files_size
+            for i in range(len(error_counts)):
+                error_counts[i] += new_error_counts[i]
+            number_of_files_processed += new_number_of_files_processed
+            total_processed_size += new_total_processed_size
 
             # update progress
             if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
                 # copy / move time is mainly based on raw MB/s throughput of drives
-                progress = total_processed_size / total_size
+                try:
+                    progress = total_processed_size / total_size
+                except ZeroDivisionError:
+                    progress = 1 / 2**32
                 rate_progress = total_processed_size / (10**6)
             else:
                 # basically just changing a few bytes in the filesystem per file,
@@ -159,6 +112,77 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             error_return.append((error_number, error_counts[error_number]))
 
     return error_return
+
+
+def move_files_unit_processor(files: list[str], path: str, input_folder, output_folder, start_with: tuple[str], end_with: tuple[str], move_mode: str, keep_folder_structure: bool):
+    """
+    multithreaded unit processor for move files
+    do not use on its own
+    """
+    total_processed_size = 0
+    error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
+    number_of_files_processed = 0
+    number_of_failed_files = 0
+    failed_files_size = 0
+
+    files_with_valid_extension_and_start = (file for file in files if (file.endswith(end_with) and file.startswith(start_with)))
+    for file in files_with_valid_extension_and_start:
+        success = (-1, "") # reset to assume no problems happen
+        source_file_path = os.path.abspath(path+"/"+file)
+        current_filesize = os.stat(source_file_path)[6] # bytes filesize
+        total_processed_size += current_filesize
+
+        if keep_folder_structure:
+            relative_output_path = path.removeprefix(input_folder) # the subfolder structure inside of input_folder
+            output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
+        else:
+            output_folder_path = output_folder
+
+        if move_mode in ["C", "M"]:
+            output_folder_exists = os.path.exists(output_folder_path)
+            if not output_folder_exists:
+                try:
+                    os.makedirs(output_folder_path)
+                except:
+                    assert (False), "destination folder didn't exist and couldn't be created"
+            output_file_exists = os.path.exists(os.path.abspath(output_folder_path+"/"+file))
+
+        try:
+            if move_mode == "C":
+                if not output_file_exists:
+                    copy2(source_file_path, output_folder_path)
+                else:
+                    # if file already exists, check if it's the same file, etc
+                    success = move_file_error(source_file_path, output_folder_path, file, move_mode)
+                    error_counts[success[0]] += 1
+            elif move_mode == "M":
+                if not output_file_exists:
+                    move(source_file_path, output_folder_path)
+                else:
+                    # if file already exists, you can trash this copy
+                    success = move_file_error(source_file_path, output_folder_path, file, move_mode)
+                    error_counts[success[0]] += 1
+            elif move_mode == "T":
+                send2trash(source_file_path)
+            elif move_mode == "D":
+                os.remove(source_file_path)
+        except Error: # this shouldn't happen, and the line below is unlikely to fix it
+            success = move_file_error(source_file_path, output_folder_path, file, move_mode)
+            error_counts[success[0]] += 1
+        except FileNotFoundError: # file was deleted, renamed or moved before it could be processed
+            error_counts[6] += 1
+        except: # unknown error
+            error_counts[5] += 1
+        number_of_files_processed += 1
+
+        # if there was a failure, update the progress accordingly
+        if success[0] in (0, 1, 3, 5):
+            number_of_files_processed -= 1
+            number_of_failed_files += 1
+            total_processed_size -= current_filesize
+            failed_files_size += current_filesize
+
+    return (error_counts, number_of_files_processed, number_of_failed_files, total_processed_size, failed_files_size)
 
 
 def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> tuple[int, str]:
