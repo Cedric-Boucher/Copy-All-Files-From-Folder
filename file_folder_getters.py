@@ -115,6 +115,41 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
     if start_with is an empty tuple, will not check what a filename starts with.
     if they are set, only files that match all of those conditions will be counted
     file_extensions is just an endswith check, so I reccomend including the period
+
+    original singlethreaded version (faster in my testing)
+    """
+    assert (os.path.exists(path)), "path does not exist"
+    assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
+    assert (type(start_with) == tuple), "start_with was not a tuple"
+
+    if len(file_extensions) == 0:
+        file_extensions = "" # all strings end with ""
+
+    if len(start_with) == 0:
+        start_with = "" # all strings start with ""
+
+    total_size = 0
+    for parent_path, _, files in os.walk(os.path.abspath(path)):
+        for file in files:
+            if file.endswith(file_extensions) and file.startswith(start_with):
+                try:
+                    total_size += os.stat(os.path.abspath(parent_path+"/"+file))[6] # bytes filesize
+                except OSError:
+                    pass
+
+    return total_size
+
+
+def get_size_of_folder_multithreaded(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
+    """
+    gets the sum of all file sizes in path and all subfolders, that match file_extensions and start_with
+    set print_stats_every_x_seconds to -1 to never print
+    if file_extensions is an empty tuple, will not check file extensions,
+    if start_with is an empty tuple, will not check what a filename starts with.
+    if they are set, only files that match all of those conditions will be counted
+    file_extensions is just an endswith check, so I reccomend including the period
+
+    in my testing this has actually been significantly slower than the singlethreaded version
     """
     assert (os.path.exists(path)), "path does not exist"
     assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
