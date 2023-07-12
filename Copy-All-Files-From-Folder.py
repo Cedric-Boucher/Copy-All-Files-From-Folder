@@ -7,7 +7,7 @@ import os
 from progress_bar import progress_bar
 from file_folder_getters import *
 from concurrent.futures import ThreadPoolExecutor
-
+from filecmp import cmp as compare_files
 from time import time
 
 
@@ -166,7 +166,7 @@ def move_files_unit_processor(files: list[str], path: str, input_folder, output_
                 send2trash(source_file_path)
             elif move_mode == "D":
                 os.remove(source_file_path)
-        except Error: # this shouldn't happen, and the line below is unlikely to fix it
+        except Error: # this shouldn't happen, and the line below will not be able to fix it
             success = move_file_error(source_file_path, output_folder_path, file, move_mode)
             error_counts[success[0]] += 1
         except FileNotFoundError: # file was deleted, renamed or moved before it could be processed
@@ -214,15 +214,9 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
     if error_is_filename_conflict:
         # check if files are the same
-        source_file_stats = os.stat(source_file_path)
+        files_are_identical = compare_files(source_file_path, os.path.abspath(destination_folder+"/"+filename), shallow = False)
 
-        destination_file_stats = os.stat(os.path.abspath(destination_folder+"/"+filename))
-
-        source_size = source_file_stats.st_size
-        destination_size = destination_file_stats.st_size
-        is_size_identical = (source_size == destination_size)
-
-        if is_size_identical:
+        if files_are_identical:
             # assumed to be the same file, original can be safely moved to trash
             if move_mode == "M":
                 send2trash(source_file_path)
@@ -239,21 +233,16 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
             if not destination_exists:
                 break # new_filename can be used
 
-            destination_file_stats = os.stat(os.path.abspath(destination_folder+"/"+new_filename))
+            files_are_identical = compare_files(source_file_path, os.path.abspath(destination_folder+"/"+filename), shallow = False)
 
-            source_size = source_file_stats.st_size
-            destination_size = destination_file_stats.st_size
-            is_size_identical = (source_size == destination_size)
-
-            if is_size_identical:
-                # assumed to be the same file, original can be safely moved to trash
+            if files_are_identical:
                 if move_mode == "M":
                     send2trash(source_file_path)
                     return errors[1]
                 # if move mode was copy then do nothing
                 return errors[0]
         
-        if destination_exists and not is_size_identical:
+        if destination_exists and not files_are_identical:
             # this means we went through all the retry attempts
             # and couldn't find somewhere to put source file,
             # so we gave up
