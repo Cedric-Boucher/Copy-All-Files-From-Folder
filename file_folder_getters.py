@@ -51,26 +51,26 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     with ThreadPoolExecutor() as executor: # get all files ahead of time, and their sizes, and sort by size?
         for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
-            for file_path2, _, files2 in os.walk(os.path.abspath(path2)): # maybe move this for into the multithreading?
-                result = executor.submit(get_duplicate_files_unit_processor, file_path1, files1, file_path2, files2)
+                result = executor.submit(get_duplicate_files_unit_processor, file_path1, files1, path2)
                 duplicate_files.extend(result.result())
 
     return tuple(duplicate_files)
 
 
-def get_duplicate_files_unit_processor(file_path1, files1, file_path2, files2) -> list[tuple[str, str]]:
+def get_duplicate_files_unit_processor(file_path1, files1, path2) -> list[tuple[str, str]]:
     """
     returns a tuple of tuples containing both full filepaths of matching files, empty tuple if none match
     """
     duplicate_files: list[tuple[str, str]] = list()
 
-    for file1 in files1:
-        full_file_path1 = os.path.abspath(file_path1+"/"+file1)
-        for file2 in files2:
-            full_file_path2 = os.path.abspath(file_path2+"/"+file2)
-            files_match = compare_files(full_file_path1, full_file_path2, shallow = False)
-            if files_match:
-                duplicate_files.append((full_file_path1, full_file_path2))
+    for file_path2, _, files2 in os.walk(os.path.abspath(path2)): # maybe move this for into the multithreading?
+        for file1 in files1:
+            full_file_path1 = os.path.abspath(file_path1+"/"+file1)
+            for file2 in files2:
+                full_file_path2 = os.path.abspath(file_path2+"/"+file2)
+                files_match = compare_files(full_file_path1, full_file_path2, shallow = False)
+                if files_match:
+                    duplicate_files.append((full_file_path1, full_file_path2))
     
     return duplicate_files
 
