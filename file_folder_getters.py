@@ -1,6 +1,7 @@
 from time import time
 import os
 from concurrent.futures import ThreadPoolExecutor
+from filecmp import cmp as compare_files
 
 def get_file_extensions(path) -> tuple[str]:
     """
@@ -32,6 +33,46 @@ def get_file_extensions_unit_processor(files: list[str]) -> tuple[str]:
             file_extensions.append(file_extension)
 
     return file_extensions
+
+
+def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
+    """
+    returns a tuple of all the files that are duplicated between path1 and path2,
+    as a tuple of the full path of the first instance, and the full path of the second instance.
+
+    if path1 and path2 are the same, will ignore case when filenames match, of course.
+
+    this is incredibly slow by the way (O(n*m) where n is number of files in path1, and m is number of files in path2)
+    """
+    assert (os.path.exists(path1)), "path1 does not exist"
+    assert (os.path.exists(path2)), "path2 does not exist"
+
+    duplicate_files: list[tuple[str, str]] = list()
+
+    with ThreadPoolExecutor() as executor: # get all files ahead of time, and their sizes, and sort by size?
+        for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
+            for file_path2, _, files2 in os.walk(os.path.abspath(path2)): # maybe move this for into the multithreading?
+                result = executor.submit(get_duplicate_files_unit_processor, file_path1, files1, file_path2, files2)
+                duplicate_files.extend(result.result())
+
+    return tuple(duplicate_files)
+
+
+def get_duplicate_files_unit_processor(file_path1, files1, file_path2, files2) -> list[tuple[str, str]]:
+    """
+    returns a tuple of tuples containing both full filepaths of matching files, empty tuple if none match
+    """
+    duplicate_files: list[tuple[str, str]] = list()
+
+    for file1 in files1:
+        full_file_path1 = os.path.abspath(file_path1+"/"+file1)
+        for file2 in files2:
+            full_file_path2 = os.path.abspath(file_path2+"/"+file2)
+            files_match = compare_files(full_file_path1, full_file_path2, shallow = False)
+            if files_match:
+                duplicate_files.append((full_file_path1, full_file_path2))
+    
+    return duplicate_files
 
 
 def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
@@ -189,5 +230,5 @@ def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_
 
 if __name__ == "__main__":
     start_time = time()
-    print(get_num_files_in_folder("C:/"))
+    print(get_duplicate_files("K:/Downloads", "K:/Downloads"))
     print("{} seconds".format(time() - start_time))
