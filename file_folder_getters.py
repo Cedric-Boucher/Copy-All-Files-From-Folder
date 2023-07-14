@@ -2,6 +2,7 @@ from time import time
 import os
 from concurrent.futures import ThreadPoolExecutor
 from filecmp import cmp as compare_files
+from progress_bar import progress_bar
 
 def get_file_extensions(path) -> tuple[str]:
     """
@@ -47,32 +48,56 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     assert (os.path.exists(path1)), "path1 does not exist"
     assert (os.path.exists(path2)), "path2 does not exist"
 
+    paths_are_identical = (os.path.abspath(path1) == os.path.abspath(path2))
     duplicate_files: list[tuple[str, str]] = list()
+    file_paths: dict[int, tuple[list[str]]] = dict()
+    # keys are size, values are tuples of size 2, first files from path1 then files from path2,
+    # inside that tuple is a list of the full filepaths of any files of this size
 
-    with ThreadPoolExecutor() as executor: # get all files ahead of time, and their sizes, and sort by size?
-        for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
-                result = executor.submit(get_duplicate_files_unit_processor, file_path1, files1, path2)
-                duplicate_files.extend(result.result())
+    for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
+        full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1]
+        sizes = [os.stat(file).st_size for file in full_paths]
+        for i in range(len(full_paths)):
+            try:
+                file_paths[sizes[i]][0].append(full_paths[i])
+            except KeyError:
+                file_paths[sizes[i]] = ([full_paths[i]], list())
+
+    if not paths_are_identical:
+        for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
+            full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2]
+            sizes = [os.stat(file).st_size for file in full_paths]
+            for i in range(len(full_paths)):
+                try:
+                    file_paths[sizes[i]][1].append(full_paths[i])
+                except KeyError:
+                    file_paths[sizes[i]] = (list(), [full_paths[i]])
+    
+    progress = progress_bar(100, rate_units="keys")
+    total_keys = len(file_paths.keys())
+    current_key_index = 0
+
+    for key in file_paths.keys():
+        if paths_are_identical:
+            # then duplicates are only in the first element of the tuple
+            potential_duplicates = file_paths[key][0]
+            # a list of all the files that were the same size, these should all be compared with each other
+            for file1 in potential_duplicates:
+                for file2 in potential_duplicates:
+                    if file1 != file2: # don't need to compare a file to itself
+                        files_are_identical = compare_files(file1, file2, shallow=False)
+                        if files_are_identical:
+                            duplicate_files.append((file1, file2))
+        else:
+            for file1 in file_paths[key][0]:
+                for file2 in file_paths[key][1]:
+                    files_are_identical = compare_files(file1, file2, shallow=False)
+                    if files_are_identical:
+                        duplicate_files.append((file1, file2))
+        current_key_index += 1
+        progress.print_progress_bar(current_key_index/total_keys, current_key_index)
 
     return tuple(duplicate_files)
-
-
-def get_duplicate_files_unit_processor(file_path1, files1, path2) -> list[tuple[str, str]]:
-    """
-    returns a tuple of tuples containing both full filepaths of matching files, empty tuple if none match
-    """
-    duplicate_files: list[tuple[str, str]] = list()
-
-    for file_path2, _, files2 in os.walk(os.path.abspath(path2)): # maybe move this for into the multithreading?
-        for file1 in files1:
-            full_file_path1 = os.path.abspath(file_path1+"/"+file1)
-            for file2 in files2:
-                full_file_path2 = os.path.abspath(file_path2+"/"+file2)
-                files_match = compare_files(full_file_path1, full_file_path2, shallow = False)
-                if files_match:
-                    duplicate_files.append((full_file_path1, full_file_path2))
-    
-    return duplicate_files
 
 
 def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
@@ -230,5 +255,5 @@ def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_
 
 if __name__ == "__main__":
     start_time = time()
-    print(get_duplicate_files("K:/Downloads", "K:/Downloads"))
+    print(get_duplicate_files("K:/test1", "K:/test1"))
     print("{} seconds".format(time() - start_time))
