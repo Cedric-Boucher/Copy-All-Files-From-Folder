@@ -42,8 +42,6 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     as a tuple of the full path of the first instance, and the full path of the second instance.
 
     if path1 and path2 are the same, will ignore case when filenames match, of course.
-
-    this is incredibly slow by the way (O(n*m) where n is number of files in path1, and m is number of files in path2)
     """
     assert (os.path.exists(path1)), "path1 does not exist"
     assert (os.path.exists(path2)), "path2 does not exist"
