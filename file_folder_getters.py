@@ -94,7 +94,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
                         duplicate_files.append((file1, file2))
         current_key_index += 1
         progress.print_progress_bar(current_key_index/total_keys, current_key_index)
-    
+
     print("") # to add a newline after the end of the progress bar
 
     return tuple(duplicate_files)
