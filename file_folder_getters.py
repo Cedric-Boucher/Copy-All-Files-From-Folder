@@ -53,7 +53,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     # inside that tuple is a list of the full filepaths of any files of this size
 
     for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
-        full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1]
+        full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1 if os.path.exists(file_path1+"/"+file)]
         sizes = [os.stat(file).st_size for file in full_paths]
         for i in range(len(full_paths)):
             try:
@@ -63,7 +63,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     if not paths_are_identical:
         for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
-            full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2]
+            full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2 if os.path.exists(file_path2+"/"+file)]
             sizes = [os.stat(file).st_size for file in full_paths]
             for i in range(len(full_paths)):
                 try:
@@ -255,5 +255,11 @@ def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_
 
 if __name__ == "__main__":
     start_time = time()
-    print(get_duplicate_files("K:/test1", "K:/test1"))
+    duplicates = get_duplicate_files("K:/General", "K:/General")
+
+    import csv
+    with open("duplicate_files.csv", "w", newline="") as file:
+        csv_writer = csv.writer(file)
+        for duplicate_pair in duplicates:
+            csv_writer.writerow(duplicate_pair)
     print("{} seconds".format(time() - start_time))
