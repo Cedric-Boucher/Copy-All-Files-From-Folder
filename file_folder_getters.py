@@ -112,10 +112,10 @@ def get_hash(file, buffer_chunk_size: int = 16777216) -> str:
 
     with open(file, 'rb') as f:
         while True:
-            data = f.read(buffer_chunk_size)
-            if not data: # once whole file has been read
+            chunk = f.read(buffer_chunk_size)
+            if not chunk: # once whole file has been read
                 break
-            sha256.update(data)
+            sha256.update(chunk)
 
     return sha256.hexdigest()
 
