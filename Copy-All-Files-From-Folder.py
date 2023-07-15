@@ -40,9 +40,6 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         rate_units = "files"
 
 
-    progress_bar_object = progress_bar(100, rate_units=rate_units) # created progress bar object
-    progress = 0
-
     if move_mode in ["C", "M"]:
         if not os.path.exists(output_folder):
             try:
@@ -77,6 +74,9 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     if len(start_with) == 0:
         start_with = "" # all strings start with ""
 
+
+    progress_bar_object = progress_bar(100, rate_units=rate_units) # created progress bar object
+    progress = 0
 
     with ThreadPoolExecutor() as executor:
         for path, _, files in os.walk(os.path.abspath(input_folder)):
