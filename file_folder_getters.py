@@ -75,7 +75,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     total_keys = len(file_paths_by_size.keys())
     current_key_index = 0
 
-    for key in file_paths_by_size.keys(): # TODO only compare files with other files that have the same filetype
+    for key in file_paths_by_size.keys():
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
             potential_duplicates: tuple[list[str], list[str]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
