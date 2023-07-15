@@ -75,18 +75,20 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     total_keys = len(potential_duplicate_file_paths.keys())
     current_key_index = 0
 
-    for key in potential_duplicate_file_paths.keys(): # TODO first check shallow to get rid of extra files and then check deep (with multithreading?)
+    for key in potential_duplicate_file_paths.keys(): # TODO only compare files with other files that have the same filetype
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
             potential_duplicates: tuple[list[str], list[str]] = (potential_duplicate_file_paths[key][0], potential_duplicate_file_paths[key][0])
         else:
             potential_duplicates: tuple[list[str], list[str]] = (potential_duplicate_file_paths[key][0], potential_duplicate_file_paths[key][1])
         for file1 in potential_duplicates[0]:
-            for file2 in potential_duplicates[1]:
-                if file1 != file2: # don't need to compare a file to itself
-                    files_are_identical = compare_files(file1, file2, shallow=False)
-                    if files_are_identical:
-                        duplicate_files.append((file1, file2))
+            file1_extension = file1.split(".")[-1]
+            files_to_compare = [file2 for file2 in potential_duplicates[1] if file2.split(".")[-1] == file1_extension and file1 != file2]
+            # only need to compare files if they have the same filetype and aren't the same path
+            for file2 in files_to_compare:
+                files_are_identical = compare_files(file1, file2, shallow=False)
+                if files_are_identical:
+                    duplicate_files.append((file1, file2))
 
         current_key_index += 1
         progress.print_progress_bar(current_key_index/total_keys, current_key_index)
