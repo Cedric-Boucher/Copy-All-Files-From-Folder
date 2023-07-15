@@ -48,7 +48,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     paths_are_identical = (os.path.abspath(path1) == os.path.abspath(path2))
     duplicate_files: list[tuple[str, str]] = list()
-    potential_duplicate_file_paths: dict[int, tuple[list[str]]] = dict()
+    file_paths_by_size: dict[int, tuple[list[str]]] = dict()
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
     # inside that tuple is a list of the full filepaths of any files of this size
 
@@ -57,9 +57,9 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
         sizes = [os.stat(file).st_size for file in full_paths]
         for i in range(len(full_paths)):
             try:
-                potential_duplicate_file_paths[sizes[i]][0].append(full_paths[i])
+                file_paths_by_size[sizes[i]][0].append(full_paths[i])
             except KeyError:
-                potential_duplicate_file_paths[sizes[i]] = ([full_paths[i]], list())
+                file_paths_by_size[sizes[i]] = ([full_paths[i]], list())
 
     if not paths_are_identical:
         for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
@@ -67,20 +67,20 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
             sizes = [os.stat(file).st_size for file in full_paths]
             for i in range(len(full_paths)):
                 try:
-                    potential_duplicate_file_paths[sizes[i]][1].append(full_paths[i])
+                    file_paths_by_size[sizes[i]][1].append(full_paths[i])
                 except KeyError:
-                    potential_duplicate_file_paths[sizes[i]] = (list(), [full_paths[i]])
+                    file_paths_by_size[sizes[i]] = (list(), [full_paths[i]])
     
     progress = progress_bar(100, rate_units="keys")
-    total_keys = len(potential_duplicate_file_paths.keys())
+    total_keys = len(file_paths_by_size.keys())
     current_key_index = 0
 
-    for key in potential_duplicate_file_paths.keys(): # TODO only compare files with other files that have the same filetype
+    for key in file_paths_by_size.keys(): # TODO only compare files with other files that have the same filetype
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
-            potential_duplicates: tuple[list[str], list[str]] = (potential_duplicate_file_paths[key][0], potential_duplicate_file_paths[key][0])
+            potential_duplicates: tuple[list[str], list[str]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
         else:
-            potential_duplicates: tuple[list[str], list[str]] = (potential_duplicate_file_paths[key][0], potential_duplicate_file_paths[key][1])
+            potential_duplicates: tuple[list[str], list[str]] = (file_paths_by_size[key][0], file_paths_by_size[key][1])
         for file1 in potential_duplicates[0]:
             file1_extension = file1.split(".")[-1]
             files_to_compare = [file2 for file2 in potential_duplicates[1] if file2.split(".")[-1] == file1_extension and file1 != file2]
