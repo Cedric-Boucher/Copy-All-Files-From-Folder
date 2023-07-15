@@ -48,7 +48,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     paths_are_identical = (os.path.abspath(path1) == os.path.abspath(path2))
     duplicate_files: list[tuple[str, str]] = list()
-    file_paths: dict[int, tuple[list[str]]] = dict()
+    potential_duplicate_file_paths: dict[int, tuple[list[str]]] = dict()
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
     # inside that tuple is a list of the full filepaths of any files of this size
 
@@ -57,9 +57,9 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
         sizes = [os.stat(file).st_size for file in full_paths]
         for i in range(len(full_paths)):
             try:
-                file_paths[sizes[i]][0].append(full_paths[i])
+                potential_duplicate_file_paths[sizes[i]][0].append(full_paths[i])
             except KeyError:
-                file_paths[sizes[i]] = ([full_paths[i]], list())
+                potential_duplicate_file_paths[sizes[i]] = ([full_paths[i]], list())
 
     if not paths_are_identical:
         for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
@@ -67,31 +67,27 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
             sizes = [os.stat(file).st_size for file in full_paths]
             for i in range(len(full_paths)):
                 try:
-                    file_paths[sizes[i]][1].append(full_paths[i])
+                    potential_duplicate_file_paths[sizes[i]][1].append(full_paths[i])
                 except KeyError:
-                    file_paths[sizes[i]] = (list(), [full_paths[i]])
+                    potential_duplicate_file_paths[sizes[i]] = (list(), [full_paths[i]])
     
     progress = progress_bar(100, rate_units="keys")
-    total_keys = len(file_paths.keys())
+    total_keys = len(potential_duplicate_file_paths.keys())
     current_key_index = 0
 
-    for key in file_paths.keys():
+    for key in potential_duplicate_file_paths.keys(): # TODO first check shallow to get rid of extra files and then check deep (with multithreading?)
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
-            potential_duplicates = file_paths[key][0]
-            # a list of all the files that were the same size, these should all be compared with each other
-            for file1 in potential_duplicates:
-                for file2 in potential_duplicates:
-                    if file1 != file2: # don't need to compare a file to itself
-                        files_are_identical = compare_files(file1, file2, shallow=False)
-                        if files_are_identical:
-                            duplicate_files.append((file1, file2))
+            potential_duplicates: tuple[list[str], list[str]] = (potential_duplicate_file_paths[key][0], potential_duplicate_file_paths[key][0])
         else:
-            for file1 in file_paths[key][0]:
-                for file2 in file_paths[key][1]:
+            potential_duplicates: tuple[list[str], list[str]] = (potential_duplicate_file_paths[key][0], potential_duplicate_file_paths[key][1])
+        for file1 in potential_duplicates[0]:
+            for file2 in potential_duplicates[1]:
+                if file1 != file2: # don't need to compare a file to itself
                     files_are_identical = compare_files(file1, file2, shallow=False)
                     if files_are_identical:
                         duplicate_files.append((file1, file2))
+
         current_key_index += 1
         progress.print_progress_bar(current_key_index/total_keys, current_key_index)
 
