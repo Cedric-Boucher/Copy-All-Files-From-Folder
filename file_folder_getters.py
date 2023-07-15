@@ -49,29 +49,53 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     paths_are_identical = (os.path.abspath(path1) == os.path.abspath(path2))
     duplicate_files: list[tuple[str, str]] = list()
-    file_paths_by_size: dict[int, tuple[list[str]]] = dict()
+    file_paths_by_size: dict[int, tuple[list[tuple[str, str]]]] = dict()
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
-    # inside that tuple is a list of the full filepaths of any files of this size
+    # inside that tuple is a list of tuples containing
+    # the full filepaths of any files of this size, and their sha256 hashes
+
+    print("counting size of folders...")
+
+    size_of_path1 = get_size_of_folder(path1)
+    if not paths_are_identical:
+        size_of_path2 = get_size_of_folder(path2)
+
+    print("getting filesizes and hashes...")
+
+    progress = progress_bar(100, rate_units="MB")
+    size_counter = 0
 
     for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
         full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1 if os.path.exists(file_path1+"/"+file)]
         sizes = [os.stat(file).st_size for file in full_paths]
+        size_counter += sum(sizes)
+        hashes = [get_hash(file) for file in full_paths]
         for i in range(len(full_paths)):
             try:
-                file_paths_by_size[sizes[i]][0].append(full_paths[i])
+                file_paths_by_size[sizes[i]][0].append((full_paths[i], hashes[i]))
             except KeyError: # can't append if the list hadn't been created
-                file_paths_by_size[sizes[i]] = ([full_paths[i]], list())
+                file_paths_by_size[sizes[i]] = ([(full_paths[i], hashes[i])], list())
+        progress.print_progress_bar(size_counter / size_of_path1, size_counter/1000000)
+
+    print("") # to add a newline after the end of the progress bar
 
     if not paths_are_identical:
+        progress = progress_bar(100, rate_units="MB")
+        size_counter = 0
         for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
             full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2 if os.path.exists(file_path2+"/"+file)]
             sizes = [os.stat(file).st_size for file in full_paths]
+            size_counter += sum(sizes)
+            hashes = [get_hash(file) for file in full_paths]
             for i in range(len(full_paths)):
                 try:
-                    file_paths_by_size[sizes[i]][1].append(full_paths[i])
+                    file_paths_by_size[sizes[i]][1].append((full_paths[i], hashes[i]))
                 except KeyError: # can't append if the list hadn't been created
-                    file_paths_by_size[sizes[i]] = (list(), [full_paths[i]])
-    
+                    file_paths_by_size[sizes[i]] = (list(), [(full_paths[i], hashes[i])])
+            progress.print_progress_bar(size_counter / size_of_path2, size_counter/1000000)
+
+    print("") # to add a newline after the end of the progress bar
+
     progress = progress_bar(100, rate_units="keys")
     total_keys = len(file_paths_by_size.keys())
     current_key_index = 0
@@ -79,13 +103,18 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     for key in file_paths_by_size.keys(): # TODO make your own deep file comparison function? cache file contents for each key in this for loop, or compare one file to all other files all at once???
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
-            potential_duplicates: tuple[list[str], list[str]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
+            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
         else:
-            potential_duplicates: tuple[list[str], list[str]] = (file_paths_by_size[key][0], file_paths_by_size[key][1])
-        for file1 in potential_duplicates[0]:
+            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (file_paths_by_size[key][0], file_paths_by_size[key][1])
+        for file_hash_pair1 in potential_duplicates[0]:
+            file1 = file_hash_pair1[0]
+            hash1 = file_hash_pair1[1]
             file1_extension = file1.split(".")[-1]
-            files_to_compare = [file2 for file2 in potential_duplicates[1] if file2.split(".")[-1] == file1_extension and file1 != file2]
-            # only need to compare files if they have the same filetype and aren't the same path
+            files_to_compare = [file_hash_pair2[0] for file_hash_pair2 in potential_duplicates[1]
+                                    if (file_hash_pair2[0].split(".")[-1] == file1_extension
+                                        and file1 != file_hash_pair2[0]
+                                        and hash1 == file_hash_pair2[1])]
+            # only compare files byte-by-byte if they have the same filetype, aren't the same path, and have the same hash
             for file2 in files_to_compare:
                 files_are_identical = compare_files(file1, file2, shallow=False)
                 if files_are_identical:
