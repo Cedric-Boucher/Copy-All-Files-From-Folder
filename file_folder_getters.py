@@ -3,6 +3,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from filecmp import cmp as compare_files
 from progress_bar import progress_bar
+import hashlib
 
 def get_file_extensions(path) -> tuple[str]:
     """
@@ -58,7 +59,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
         for i in range(len(full_paths)):
             try:
                 file_paths_by_size[sizes[i]][0].append(full_paths[i])
-            except KeyError:
+            except KeyError: # can't append if the list hadn't been created
                 file_paths_by_size[sizes[i]] = ([full_paths[i]], list())
 
     if not paths_are_identical:
@@ -68,14 +69,14 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
             for i in range(len(full_paths)):
                 try:
                     file_paths_by_size[sizes[i]][1].append(full_paths[i])
-                except KeyError:
+                except KeyError: # can't append if the list hadn't been created
                     file_paths_by_size[sizes[i]] = (list(), [full_paths[i]])
     
     progress = progress_bar(100, rate_units="keys")
     total_keys = len(file_paths_by_size.keys())
     current_key_index = 0
 
-    for key in file_paths_by_size.keys():
+    for key in file_paths_by_size.keys(): # TODO make your own deep file comparison function? cache file contents for each key in this for loop, or compare one file to all other files all at once???
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
             potential_duplicates: tuple[list[str], list[str]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
@@ -96,6 +97,27 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     print("") # to add a newline after the end of the progress bar
 
     return tuple(duplicate_files)
+
+
+def get_hash(file, buffer_chunk_size: int = 16777216) -> str:
+    """
+    gets the hash (sha256) of a file
+    default buffer size of 16MiB
+    """
+    assert (os.path.exists(file)), "file doesn't exist"
+    assert (type(buffer_chunk_size) == int), "buffer chunk size needs to be an int"
+    assert (buffer_chunk_size > 0), "buffer chunk size was too small"
+
+    sha256 = hashlib.sha256()
+
+    with open(file, 'rb') as f:
+        while True:
+            data = f.read(buffer_chunk_size)
+            if not data: # once whole file has been read
+                break
+            sha256.update(data)
+
+    return sha256.hexdigest()
 
 
 def get_num_files_in_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
