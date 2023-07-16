@@ -1,6 +1,3 @@
-"""
-compatible with config files versioned V0.3
-"""
 from shutil import copy2, move, Error
 from send2trash import send2trash
 import os
@@ -9,6 +6,26 @@ from file_folder_getters import *
 from concurrent.futures import ThreadPoolExecutor
 from filecmp import cmp as compare_files
 from time import time
+import argparse
+
+
+def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str]:
+    """
+    takes care of parsing the command line arguments passed to the program
+
+    returns tuple:
+    (get_file_extensions: bool, input_folder: str, output_folder: str, file_extensions: list[str], file_beginnings: list[str], operation: str)
+    """
+    parser = argparse.ArgumentParser(description="Does various things related to file handling and moving")
+    parser.add_argument("--get_file_extensions", "-gfe", type=bool, nargs="?", help="bool, True for getting file extensions", choices=(True, False), default=False)
+    parser.add_argument("--input_folder", "-if", type=str, nargs="?", required=True, help="str, path to the input folder for processing")
+    parser.add_argument("--output_folder", "-of", type=str, nargs="?", help="str, path to the output folder for processing")
+    parser.add_argument("--file_extensions", "-fe", type=str, nargs="*", help="str, list the file extensions you want to limit processing to", default=[])
+    parser.add_argument("--file_beginnings", "-fb", type=str, nargs="*", help="str, list the file beginnings you want to limit processing to", default=[])
+    parser.add_argument("--operation", "-op", type=str, nargs="?", choices=("C", "M", "T", "D"), help="str, file operation to perform (Copy, Move, Trash, Delete)")
+    args = parser.parse_args()
+
+    return (args.get_file_extensions, args.input_folder, args.output_folder, args.file_extensions, args.file_beginnings, args.operation)
 
 
 def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
@@ -270,74 +287,26 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
         return errors[5] # error was not resolved
 
 
-def remove_comment_from_input(input: str) -> str:
-    return input.split("#")[0]
-
-
-def string_to_tuple(string: str, delimiter: str = " ") -> tuple[str]:
-    """
-    if string is empty, will return empty tuple,
-    else will do what you expect it to do
-    """
-    if string == "":
-        return tuple()
-    else:
-        return tuple(string.split(delimiter))
-
-
 def main() -> None:
-    read_config_or_not = input("Read config file (Y) or enter properties manually (anything else)?:\n").split("#")[0]
-    print("")
-    global start_time
     start_time = time()
+    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode) = parse_inputs()
 
-    if read_config_or_not.upper() == "Y":
-        with open("Copy-All-Files-From-Folder_V0.3.config", "r") as file:
-            file_lines: list[str] = file.readlines()
-        # done reading file
+    if get_file_extensions_or_run_program: # True means get file extensions
+        assert (os.path.exists(input_folder)), "input folder does not exist"
+        [print(extension, end=" ") for extension in get_file_extensions(input_folder)]
+        print("") # add a newline after the list
 
-        # assign each line to correct variable while removing comments
-        get_file_extensions_or_run_program = remove_comment_from_input(file_lines[0])
-        input_folder = remove_comment_from_input(file_lines[1])
+    else:
+        assert (os.path.exists(output_folder)), "output folder does not exist"
+        assert (move_mode in ("C", "M", "T", "D")), "operation type invalid or not given"
+        file_extensions = tuple(file_extensions)
+        file_starts = tuple(file_starts)
 
-        if get_file_extensions_or_run_program.upper() == "Y":
-            get_file_extensions(input_folder)
+        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)))
 
-        else:
-            output_folder = remove_comment_from_input(file_lines[2])
-            file_extensions = string_to_tuple(remove_comment_from_input(file_lines[3]), " ") # remove comment and convert to tuple[str]
-            file_starts = string_to_tuple(remove_comment_from_input(file_lines[4]), " ") # remove comment and convert to tuple[str]
-            move_mode = remove_comment_from_input(file_lines[5])
-
-            print("\n\n" + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)) + " errors")
-
-    else: # user inputs, not config file
-        get_file_extensions_or_run_program = remove_comment_from_input(input("Get File Extensions? (Y, anything else runs program normally):\n"))
-        print("")
-
-        if get_file_extensions_or_run_program.upper() == "Y":
-            print(get_file_extensions(remove_comment_from_input(input("Folder to get file extensions list from:\n"))))
-
-        else:
-            input_folder = remove_comment_from_input(input("Input Folder (all files with specified extensions will be copied/moved from this folder and all subfolders):\n"))
-            print("")
-            output_folder = remove_comment_from_input(input("Output Folder (all files will be copied/moved into this directory, not necessary for trash or deletion):\n"))
-            print("")
-            file_extensions = remove_comment_from_input(input("File Extensions to copy/move (space separated, ex: '.jpeg .mp4 .txt'):\n"))
-            print("")
-            file_starts = remove_comment_from_input(input("File beginnings to copy/move (space separated, ex: '.'):\n"))
-            print("")
-            move_mode = remove_comment_from_input(input("Copy, Move, Trash, or permanently Delete? (M for Move, C for Copy, T for Trash, D for PERMANENTLY DELETE):\n"))
-            print("")
-
-            file_extensions = string_to_tuple(file_extensions, " ")
-            file_starts = string_to_tuple(file_starts, " ")
-
-            print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)))
-
+    print("{} seconds to run".format(time() - start_time))
     return None
 
 
 if __name__ == "__main__":
     main()
-    print("{} seconds to run".format(time() - start_time))
