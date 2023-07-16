@@ -40,7 +40,7 @@ class progress_bar:
 
 
     def __update_output_string(self, progress: float, rate_progress: float = None) -> None:
-        assert (type(progress) in (float, int)), "type of progress was not float"
+        assert (type(progress) in (float, int)), "type of progress was not float or int"
         assert (type(rate_progress) in (float, int) or rate_progress is None), "rate_progress was not None or float/int"
 
         if progress > 1:

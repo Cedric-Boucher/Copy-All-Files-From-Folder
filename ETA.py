@@ -12,13 +12,15 @@ class ETA:
         updates self.time_remaining
         progress should be float [0, 1]
         """
-        assert (type(progress) == float), "progress was not float"
-        assert (0 <= progress <= 1), "progress was not [0, 1]"
+        assert (type(progress) in (float, int)), "progress was not float or int"
+        assert (0 <= progress), "progress was not >= 0"
         time_delta = (time() - self.__start_time)
         if progress != 0:
             estimated_total_time = (time_delta / progress)
         else:
             estimated_total_time = 2**63 # unnecessarily large number
+        if progress > 1:
+            progress = 1
         self.__time_remaining = (estimated_total_time - time_delta)
         return None
 
