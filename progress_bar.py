@@ -41,8 +41,10 @@ class progress_bar:
 
     def __update_output_string(self, progress: float, rate_progress: float = None) -> None:
         assert (type(progress) == float), "type of progress was not float"
-        assert (progress <= 1), "progress was greater than 1"
         assert (type(rate_progress) in [float, int] or rate_progress is None), "rate_progress was not None or float/int"
+
+        if progress > 1:
+            progress = 1
 
         output_string = self.__start_string
         progress_character_count = int(progress*self.__length)
