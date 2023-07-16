@@ -29,7 +29,10 @@ class progress_bar:
         self.__with_ETA = with_ETA
         self.__with_rate = with_rate
         self.__rate_units = rate_units
-        self.__ETA = None # don't start the ETA stopwatch until first update
+        if with_ETA:
+            self.__ETA = ETA()
+        else:
+            self.__ETA = None
 
         self.__output_string = "" # not defined yet
 
@@ -37,9 +40,11 @@ class progress_bar:
 
 
     def __update_output_string(self, progress: float, rate_progress: float = None) -> None:
-        assert (type(progress) == float), "type of progress was not float"
-        assert (progress <= 1), "progress was greater than 1"
-        assert (type(rate_progress) in [float, int] or rate_progress is None), "rate_progress was not None or float/int"
+        assert (type(progress) in (float, int)), "type of progress was not float or int"
+        assert (type(rate_progress) in (float, int) or rate_progress is None), "rate_progress was not None or float/int"
+
+        if progress > 1:
+            progress = 1
 
         output_string = self.__start_string
         progress_character_count = int(progress*self.__length)
@@ -49,8 +54,6 @@ class progress_bar:
         if self.__with_percentage:
             output_string += " {:6.2f}%".format(progress*100)
         if self.__with_ETA:
-            if self.__ETA is None:
-                self.__ETA = ETA() # start ETA stopwatch on first update
             output_string += " | {} remaining".format(seconds_to_time(self.__ETA.get_time_remaining(progress)))
         if self.__with_rate and rate_progress is not None:
             try:

@@ -37,12 +37,52 @@ def get_file_extensions_unit_processor(files: list[str]) -> tuple[str]:
     return file_extensions
 
 
+def get_small_or_large_files(path, size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]:
+    """
+    gets all files from path which:
+        are less than or equal to the size cutoff if is_max is True
+        are greater than or equal to the size cutoff if is_max is False
+    
+    returns a tuple of tuples of the full filepaths and their corresponding filesize
+    """
+    assert (os.path.exists(path)), "path does not exist"
+    assert (type(size_cutoff) == int), "size cutoff was not an int"
+    assert (size_cutoff >= 0), "size cutoff was negative"
+    assert (type(is_max) == bool), "is_max was not a bool"
+
+    files_sizes_pairs: list[tuple[str, int]] = list()
+
+    with ThreadPoolExecutor() as executor:
+        for path_to_file, _, files in os.walk(os.path.abspath(path)):
+            files = [os.path.abspath(path_to_file+"/"+file) for file in files if os.path.exists(path_to_file+"/"+file)]
+            thread_result = executor.submit(get_small_or_large_files_unit_processor, files, size_cutoff, is_max)
+            files_sizes_pairs.extend(thread_result.result())
+
+    return tuple(files_sizes_pairs)
+
+
+def get_small_or_large_files_unit_processor(files: list[str], size_cutoff: int, is_max: bool) -> list[tuple[str, int]]:
+    """
+    unit multithreaded processor for get_small_or_large_files,
+    do not use by itself
+    """
+    files_sizes_pairs: list[tuple[str, int]] = list()
+    for file in files:
+        file_size = os.stat(file).st_size
+        if (is_max and file_size <= size_cutoff) or (not is_max and file_size >= size_cutoff):
+            files_sizes_pairs.append((file, file_size))
+    
+    return files_sizes_pairs
+
+
 def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     """
     returns a tuple of all the files that are duplicated between path1 and path2,
     as a tuple of the full path of the first instance, and the full path of the second instance.
 
     if path1 and path2 are the same, will ignore case when filenames match, of course.
+
+    does not return files that have 0 bytes size.
     """
     assert (os.path.exists(path1)), "path1 does not exist"
     assert (os.path.exists(path2)), "path2 does not exist"
@@ -69,8 +109,10 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
         full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1 if os.path.exists(file_path1+"/"+file)]
         sizes = [os.stat(file).st_size for file in full_paths]
         size_counter += sum(sizes)
-        hashes = [get_hash(file) for file in full_paths]
+        hashes = [get_hash(file, buffer_chunk_size=1048576, only_read_one_chunk=True) for file in full_paths]
         for i in range(len(full_paths)):
+            if sizes[i] == 0:
+                continue # all files of 0 bytes would match, which is very slow and unnecessary
             try:
                 file_paths_by_size[sizes[i]][0].append((full_paths[i], hashes[i]))
             except KeyError: # can't append if the list hadn't been created
@@ -86,8 +128,10 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
             full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2 if os.path.exists(file_path2+"/"+file)]
             sizes = [os.stat(file).st_size for file in full_paths]
             size_counter += sum(sizes)
-            hashes = [get_hash(file) for file in full_paths]
+            hashes = [get_hash(file, buffer_chunk_size=1048576, only_read_one_chunk=True) for file in full_paths]
             for i in range(len(full_paths)):
+                if sizes[i] == 0:
+                    continue # all files of 0 bytes would match, which is very slow and unnecessary
                 try:
                     file_paths_by_size[sizes[i]][1].append((full_paths[i], hashes[i]))
                 except KeyError: # can't append if the list hadn't been created
@@ -95,12 +139,13 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
             progress.print_progress_bar(size_counter / size_of_path2, size_counter/1000000)
 
     print("") # to add a newline after the end of the progress bar
+    print("finding duplicates...")
 
     progress = progress_bar(100, rate_units="keys")
     total_keys = len(file_paths_by_size.keys())
     current_key_index = 0
 
-    for key in file_paths_by_size.keys(): # TODO make your own deep file comparison function? cache file contents for each key in this for loop, or compare one file to all other files all at once???
+    for key in file_paths_by_size.keys():
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
             potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
@@ -117,6 +162,8 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
             # only compare files byte-by-byte if they have the same filetype, aren't the same path, and have the same hash
             for file2 in files_to_compare:
                 files_are_identical = compare_files(file1, file2, shallow=False)
+                # verify that files are actually identical all the way through, byte for byte, since
+                # the hash only read the first little bit of each file
                 if files_are_identical:
                     duplicate_files.append((file1, file2))
 
@@ -128,7 +175,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     return tuple(duplicate_files)
 
 
-def get_hash(file, buffer_chunk_size: int = 16777216) -> str:
+def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = False) -> str:
     """
     gets the hash (sha256) of a file
     default buffer size of 16MiB
@@ -146,6 +193,8 @@ def get_hash(file, buffer_chunk_size: int = 16777216) -> str:
                 if not chunk: # once whole file has been read
                     break
                 sha256.update(chunk)
+                if only_read_one_chunk:
+                    break
     except:
         return ""
 
@@ -307,7 +356,7 @@ def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_
 
 if __name__ == "__main__":
     start_time = time()
-    duplicates = get_duplicate_files("K:/General", "K:/General")
+    duplicates = get_duplicate_files("C:/Users/onebi/Documents", "C:/Users/onebi/Documents")
 
     import csv
     with open("duplicate_files.csv", "w", newline="") as file:
