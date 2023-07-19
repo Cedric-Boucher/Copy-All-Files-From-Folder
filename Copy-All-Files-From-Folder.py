@@ -23,9 +23,10 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str]:
     parser.add_argument("--file_extensions", "-fe", type=str, nargs="*", help="str, list the file extensions you want to limit processing to", default=[])
     parser.add_argument("--file_beginnings", "-fb", type=str, nargs="*", help="str, list the file beginnings you want to limit processing to", default=[])
     parser.add_argument("--operation", "-op", type=str, nargs="?", choices=("C", "M", "T", "D"), help="str, file operation to perform (Copy, Move, Trash, Delete)")
+    parser.add_argument("--confirm_permanent_delete", "-cpd", type=bool, nargs="?", help="bool, required to be True to permanently delete any files", choices=(True, False), default=False)
     args = parser.parse_args()
 
-    return (args.get_file_extensions, args.input_folder, args.output_folder, args.file_extensions, args.file_beginnings, args.operation)
+    return (args.get_file_extensions, args.input_folder, args.output_folder, args.file_extensions, args.file_beginnings, args.operation, args.confirm_permanent_delete)
 
 
 def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
@@ -289,16 +290,18 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
 def main() -> None:
     start_time = time()
-    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode) = parse_inputs()
+    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed) = parse_inputs()
+    assert (os.path.exists(input_folder)), "input folder does not exist"
 
     if get_file_extensions_or_run_program: # True means get file extensions
-        assert (os.path.exists(input_folder)), "input folder does not exist"
         [print(extension, end=" ") for extension in get_file_extensions(input_folder)]
         print("") # add a newline after the list
 
     else:
-        assert (os.path.exists(output_folder)), "output folder does not exist"
         assert (move_mode in ("C", "M", "T", "D")), "operation type invalid or not given"
+        assert (move_mode != "D" or permanent_delete_confirmed), "permanent deletion must be confirmed with --confirm_permanent_delete or -cpd argument set to True"
+        if move_mode not in ("T", "D"):
+            assert (os.path.exists(output_folder)), "output folder does not exist"
         file_extensions = tuple(file_extensions)
         file_starts = tuple(file_starts)
 
