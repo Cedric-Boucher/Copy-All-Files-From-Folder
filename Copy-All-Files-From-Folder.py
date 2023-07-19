@@ -14,7 +14,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str]:
     takes care of parsing the command line arguments passed to the program
 
     returns tuple:
-    (get_file_extensions: bool, input_folder: str, output_folder: str, file_extensions: list[str], file_beginnings: list[str], operation: str)
+    (get_file_extensions: bool, input_folder: str, output_folder: str, file_extensions: list[str], file_beginnings: list[str], operation: str, confirm_permanent_delete: bool)
     """
     parser = argparse.ArgumentParser(description="Does various things related to file handling and moving")
     parser.add_argument("--get_file_extensions", "-gfe", type=bool, nargs="?", help="bool, True for getting file extensions", choices=(True, False), default=False)
