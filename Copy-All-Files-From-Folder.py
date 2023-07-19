@@ -61,7 +61,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     if move_mode in ["C", "M"]:
         if not os.path.exists(output_folder):
             try:
-                os.mkdir(output_folder)
+                os.makedirs(output_folder)
             except:
                 assert (False), "destination folder didn't exist and couldn't be created"
 
@@ -224,7 +224,7 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
     if not os.path.exists(destination_folder):
         try:
-            os.mkdir(destination_folder)
+            os.makedirs(destination_folder)
         except:
             assert (False), "destination folder didn't exist and couldn't be created"
 
