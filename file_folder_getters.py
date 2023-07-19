@@ -94,21 +94,21 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     # inside that tuple is a list of tuples containing
     # the full filepaths of any files of this size, and their sha256 hashes
 
-    print("counting size of folders...")
+    print("counting files in folders...")
 
-    size_of_path1 = get_size_of_folder(path1)
+    files_in_path1 = get_num_files_in_folder(path1)
     if not paths_are_identical:
-        size_of_path2 = get_size_of_folder(path2)
+        files_in_path2 = get_num_files_in_folder(path2)
 
     print("getting filesizes and hashes...")
 
-    progress = progress_bar(100, rate_units="MB")
-    size_counter = 0
+    progress = progress_bar(100, rate_units="files")
+    file_counter = 0
 
     for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
         full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1 if os.path.exists(file_path1+"/"+file)]
         sizes = [os.stat(file).st_size for file in full_paths]
-        size_counter += sum(sizes)
+        file_counter += len(full_paths)
         hashes = [get_hash(file, buffer_chunk_size=1048576, only_read_one_chunk=True) for file in full_paths]
         for i in range(len(full_paths)):
             if sizes[i] == 0:
@@ -117,17 +117,17 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
                 file_paths_by_size[sizes[i]][0].append((full_paths[i], hashes[i]))
             except KeyError: # can't append if the list hadn't been created
                 file_paths_by_size[sizes[i]] = ([(full_paths[i], hashes[i])], list())
-        progress.print_progress_bar(size_counter / size_of_path1, size_counter/1000000)
+        progress.print_progress_bar(file_counter / files_in_path1, file_counter)
 
     print("") # to add a newline after the end of the progress bar
 
     if not paths_are_identical:
-        progress = progress_bar(100, rate_units="MB")
-        size_counter = 0
+        progress = progress_bar(100, rate_units="files")
+        file_counter = 0
         for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
             full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2 if os.path.exists(file_path2+"/"+file)]
             sizes = [os.stat(file).st_size for file in full_paths]
-            size_counter += sum(sizes)
+            file_counter += len(full_paths)
             hashes = [get_hash(file, buffer_chunk_size=1048576, only_read_one_chunk=True) for file in full_paths]
             for i in range(len(full_paths)):
                 if sizes[i] == 0:
@@ -136,7 +136,7 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
                     file_paths_by_size[sizes[i]][1].append((full_paths[i], hashes[i]))
                 except KeyError: # can't append if the list hadn't been created
                     file_paths_by_size[sizes[i]] = (list(), [(full_paths[i], hashes[i])])
-            progress.print_progress_bar(size_counter / size_of_path2, size_counter/1000000)
+            progress.print_progress_bar(file_counter / files_in_path2, file_counter)
 
     print("") # to add a newline after the end of the progress bar
     print("finding duplicates...")
@@ -356,7 +356,7 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 
 if __name__ == "__main__":
     start_time = time()
-    duplicates = get_duplicate_files("C:/Users/onebi/Documents", "C:/Users/onebi/Documents")
+    duplicates = get_duplicate_files("C:/", "C:/")
 
     import csv
     with open("duplicate_files.csv", "w", newline="") as file:
