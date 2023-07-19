@@ -15,13 +15,13 @@ def get_file_extensions(path) -> tuple[str]:
 
     with ThreadPoolExecutor() as executor:
         for _, _, files in os.walk(os.path.abspath(path)):
-            new_file_extensions = executor.submit(get_file_extensions_unit_processor, files)
+            new_file_extensions = executor.submit(__get_file_extensions_unit_processor, files)
             file_extensions.extend([extension for extension in new_file_extensions.result() if extension not in file_extensions])
 
     return tuple(file_extensions)
 
 
-def get_file_extensions_unit_processor(files: list[str]) -> tuple[str]:
+def __get_file_extensions_unit_processor(files: list[str]) -> tuple[str]:
     """
     unit multithreaded processor for get_file_extenions,
     do not use by itself
@@ -55,13 +55,13 @@ def get_small_or_large_files(path, size_cutoff: int, is_max: bool = True) -> tup
     with ThreadPoolExecutor() as executor:
         for path_to_file, _, files in os.walk(os.path.abspath(path)):
             files = [os.path.abspath(path_to_file+"/"+file) for file in files if os.path.exists(path_to_file+"/"+file)]
-            thread_result = executor.submit(get_small_or_large_files_unit_processor, files, size_cutoff, is_max)
+            thread_result = executor.submit(__get_small_or_large_files_unit_processor, files, size_cutoff, is_max)
             files_sizes_pairs.extend(thread_result.result())
 
     return tuple(files_sizes_pairs)
 
 
-def get_small_or_large_files_unit_processor(files: list[str], size_cutoff: int, is_max: bool) -> list[tuple[str, int]]:
+def __get_small_or_large_files_unit_processor(files: list[str], size_cutoff: int, is_max: bool) -> list[tuple[str, int]]:
     """
     unit multithreaded processor for get_small_or_large_files,
     do not use by itself
@@ -254,13 +254,13 @@ def get_num_files_in_folder_multithreaded(path, file_extensions: tuple[str] = ()
     num_files = 0
     with ThreadPoolExecutor() as executor:
         for _, _, files in os.walk(os.path.abspath(path)):
-            new_num_files = executor.submit(get_num_files_in_folder_unit_processor, files, file_extensions, start_with)
+            new_num_files = executor.submit(__get_num_files_in_folder_unit_processor, files, file_extensions, start_with)
             num_files += new_num_files.result()
 
     return num_files
 
 
-def get_num_files_in_folder_unit_processor(files: list[str], end_with: tuple[str], start_with: tuple[str]) -> int:
+def __get_num_files_in_folder_unit_processor(files: list[str], end_with: tuple[str], start_with: tuple[str]) -> int:
     """
     returns number of files with matching begin and end string
     do not use on its own
@@ -331,13 +331,13 @@ def get_size_of_folder_multithreaded(path, file_extensions: tuple[str] = (), sta
     total_size = 0
     with ThreadPoolExecutor() as executor:
         for parent_path, _, files in os.walk(os.path.abspath(path)):
-            new_folder_size = executor.submit(get_size_of_folder_unit_processor, files, parent_path, start_with, file_extensions)
+            new_folder_size = executor.submit(__get_size_of_folder_unit_processor, files, parent_path, start_with, file_extensions)
             total_size += new_folder_size.result()
 
     return total_size
 
 
-def get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_with: tuple[str], end_with: tuple[str]) -> int:
+def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_with: tuple[str], end_with: tuple[str]) -> int:
     """
     returns the total size of the given files
     do not use on its own
