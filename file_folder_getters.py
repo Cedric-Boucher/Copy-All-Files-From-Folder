@@ -21,36 +21,20 @@ def get_all_files_in_folder(path) -> tuple[str]:
     return tuple(files)
 
 
-def get_file_extensions(path) -> tuple[str]:
+def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     """
-    returns a tuple of all file extensions is a folder and subfolders
+    returns a tuple of all unique file extensions in a folder and subfolders
     """
-    assert (os.path.exists(path)), "path does not exist"
+    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
 
-    file_extensions = list()
+    file_extensions = set()
 
-    with ThreadPoolExecutor() as executor:
-        for _, _, files in os.walk(os.path.abspath(path)):
-            new_file_extensions = executor.submit(__get_file_extensions_unit_processor, files)
-            file_extensions.extend([extension for extension in new_file_extensions.result() if extension not in file_extensions])
+    for filepath in filepaths:
+        assert (isinstance(filepath, str)), "at least one filepath was not a string"
+        file_extension = "."+filepath.split(".")[-1]
+        file_extensions.add(file_extension)
 
     return tuple(file_extensions)
-
-
-def __get_file_extensions_unit_processor(files: list[str]) -> tuple[str]:
-    """
-    unit multithreaded processor for get_file_extenions,
-    do not use by itself
-    """
-    file_extensions = list()
-
-    for file in files:
-        filename_parts = file.split(".")
-        file_extension = "."+filename_parts[-1]
-        if file_extension not in file_extensions:
-            file_extensions.append(file_extension)
-
-    return file_extensions
 
 
 def get_small_or_large_files(path, size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]:
