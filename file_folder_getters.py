@@ -5,6 +5,22 @@ from filecmp import cmp as compare_files
 from progress_bar import progress_bar
 import hashlib
 
+
+def get_all_files_in_folder(path) -> tuple[str]:
+    """
+    returns a tuple of all the files in a folder and subfolders,
+    the strings in the tuple are full absolute file paths
+    """
+    assert (os.path.exists(path)), "path does not exist"
+
+    files = list()
+
+    for path_to_file, _, sub_files in os.walk(os.path.abspath(path)):
+        files.extend([os.path.abspath(path_to_file+"/"+sub_file) for sub_file in sub_files])
+
+    return tuple(files)
+
+
 def get_file_extensions(path) -> tuple[str]:
     """
     returns a tuple of all file extensions is a folder and subfolders
@@ -365,5 +381,8 @@ if __name__ == "__main__":
     with open("duplicate_files.csv", "w", newline="") as file:
         csv_writer = csv.writer(file)
         for duplicate_pair in duplicates:
-            csv_writer.writerow(duplicate_pair)
+            try:
+                csv_writer.writerow(duplicate_pair)
+            except UnicodeEncodeError:
+                pass
     print("{} seconds".format(time() - start_time))
