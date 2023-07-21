@@ -37,7 +37,7 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_small_or_large_files(path, size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]:
+def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]:
     """
     gets all files from path which:
         are less than or equal to the size cutoff if is_max is True
@@ -45,34 +45,22 @@ def get_small_or_large_files(path, size_cutoff: int, is_max: bool = True) -> tup
     
     returns a tuple of tuples of the full filepaths and their corresponding filesize
     """
-    assert (os.path.exists(path)), "path does not exist"
+    assert (isinstance(filepaths, tuple)), "path does not exist"
     assert (type(size_cutoff) == int), "size cutoff was not an int"
     assert (size_cutoff >= 0), "size cutoff was negative"
     assert (type(is_max) == bool), "is_max was not a bool"
 
     files_sizes_pairs: list[tuple[str, int]] = list()
 
-    with ThreadPoolExecutor() as executor:
-        for path_to_file, _, files in os.walk(os.path.abspath(path)):
-            files = [os.path.abspath(path_to_file+"/"+file) for file in files if os.path.exists(path_to_file+"/"+file)]
-            thread_result = executor.submit(__get_small_or_large_files_unit_processor, files, size_cutoff, is_max)
-            files_sizes_pairs.extend(thread_result.result())
+    for filepath in filepaths:
+        try:
+            file_size = os.stat(filepath).st_size
+        except:
+            continue # skip filepath
+        if (is_max and file_size <= size_cutoff) or (not is_max and file_size >= size_cutoff):
+            files_sizes_pairs.append((filepath, file_size))
 
     return tuple(files_sizes_pairs)
-
-
-def __get_small_or_large_files_unit_processor(files: list[str], size_cutoff: int, is_max: bool) -> list[tuple[str, int]]:
-    """
-    unit multithreaded processor for get_small_or_large_files,
-    do not use by itself
-    """
-    files_sizes_pairs: list[tuple[str, int]] = list()
-    for file in files:
-        file_size = os.stat(file).st_size
-        if (is_max and file_size <= size_cutoff) or (not is_max and file_size >= size_cutoff):
-            files_sizes_pairs.append((file, file_size))
-    
-    return files_sizes_pairs
 
 
 def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
