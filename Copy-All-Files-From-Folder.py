@@ -9,12 +9,12 @@ from time import time
 import argparse
 
 
-def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str]:
+def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, bool]:
     """
     takes care of parsing the command line arguments passed to the program
 
     returns tuple:
-    (get_file_extensions: bool, input_folder: str, output_folder: str, file_extensions: list[str], file_beginnings: list[str], operation: str, confirm_permanent_delete: bool)
+    (get_file_extensions: bool, input_folder: str, output_folder: str, file_extensions: list[str], file_beginnings: list[str], operation: str, confirm_permanent_delete: bool, keep_folder_structure: bool)
     """
     parser = argparse.ArgumentParser(description="Does various things related to file handling and moving")
     parser.add_argument("--get_file_extensions", "-gfe", type=bool, nargs="?", help="bool, True for getting file extensions", choices=(True, False), default=False)
@@ -22,11 +22,12 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str]:
     parser.add_argument("--output_folder", "-of", type=str, nargs="?", help="str, path to the output folder for processing")
     parser.add_argument("--file_extensions", "-fe", type=str, nargs="*", help="str, list the file extensions you want to limit processing to", default=[])
     parser.add_argument("--file_beginnings", "-fb", type=str, nargs="*", help="str, list the file beginnings you want to limit processing to", default=[])
+    parser.add_argument("--keep_folder_structure", "-kfs", type=bool, nargs="?", help="bool, True to keep folder structure as is, False to have no subfolders in output", choices=(True, False), default=True)
     parser.add_argument("--operation", "-op", type=str, nargs="?", choices=("C", "M", "T", "D"), help="str, file operation to perform (Copy, Move, Trash, Delete)")
     parser.add_argument("--confirm_permanent_delete", "-cpd", type=bool, nargs="?", help="bool, required to be True to permanently delete any files", choices=(True, False), default=False)
     args = parser.parse_args()
 
-    return (args.get_file_extensions, args.input_folder, args.output_folder, args.file_extensions, args.file_beginnings, args.operation, args.confirm_permanent_delete)
+    return (args.get_file_extensions, args.input_folder, args.output_folder, args.file_extensions, args.file_beginnings, args.operation, args.confirm_permanent_delete, args.keep_folder_structure)
 
 
 def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
@@ -290,7 +291,7 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
 def main() -> None:
     start_time = time()
-    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed) = parse_inputs()
+    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed, keep_folder_structure) = parse_inputs()
     assert (os.path.exists(input_folder)), "input folder does not exist"
 
     if get_file_extensions_or_run_program: # True means get file extensions
@@ -305,7 +306,7 @@ def main() -> None:
         file_extensions = tuple(file_extensions)
         file_starts = tuple(file_starts)
 
-        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)))
+        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode, keep_folder_structure)))
 
     print("{} seconds to run".format(time() - start_time))
     return None
