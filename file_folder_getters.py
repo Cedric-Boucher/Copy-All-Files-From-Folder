@@ -50,6 +50,24 @@ def limit_files_by_file_extension(filepaths: tuple[str], file_extensions: tuple[
     return new_filepaths
 
 
+def limit_files_by_file_start(filepaths: tuple[str], file_starts: tuple[str]) -> tuple[str]:
+    """
+    returns a limited version of the input filepaths tuple, by only keeping
+    any files that their filenames start with one of the strings in file_starts
+    """
+    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
+    assert (isinstance(file_starts, tuple)), "file_starts was not a tuple"
+
+    new_filepaths: list[str] = list()
+
+    for filepath in filepaths:
+        filename = os.path.basename(filepath)
+        if filename.startswith(file_starts):
+            new_filepaths.append(filename)
+
+    return tuple(new_filepaths)
+
+
 def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]: # FIXME not particularly useful anymore? it's just a bit odd
     """
     gets all files from path which:
@@ -327,6 +345,11 @@ if __name__ == "__main__":
     print(len(files))
     print(files[:20])
     print("limited by filesize in {} seconds".format(time() - new_time))
+    new_time = time()
+    files = limit_files_by_file_start(files, ("a",))
+    print(len(files))
+    print(files)
+    print("limited by file start in {} seconds".format(time() - new_time))
 
 
     """
