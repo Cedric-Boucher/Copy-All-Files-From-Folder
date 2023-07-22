@@ -86,7 +86,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
 
     files_in_path1 = len(filepaths1)
     if not paths_are_identical:
-        files_in_path2 = get_num_files_in_folder(filepaths2)
+        files_in_path2 = len(filepaths2)
 
     print("getting filesizes and hashes...")
 
