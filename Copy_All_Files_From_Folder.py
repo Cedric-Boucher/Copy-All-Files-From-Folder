@@ -78,6 +78,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             try:
                 os.makedirs(output_folder)
                 output_folder = os.path.abspath(output_folder) # fix slashes
+                same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
             except:
                 assert (False), "destination folder didn't exist and couldn't be created"
 
@@ -100,7 +101,6 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     print("{} files left to operate on".format(new_number_of_files_total))
     number_of_files_total = new_number_of_files_total
 
-    same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
     if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
         # copy / move time is mainly based on raw MB/s throughput of drives
         rate_units = "MB"
@@ -182,13 +182,13 @@ def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_fold
         current_filesize = os.stat(filepath).st_size # bytes filesize
         total_processed_size += current_filesize
 
-        if keep_folder_structure:
+        if keep_folder_structure and move_mode in ("C", "M"):
             relative_output_path = os.path.split(filepath)[0].removeprefix(input_folder) # the subfolder structure inside of input_folder
             output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
         else:
             output_folder_path = output_folder
 
-        if move_mode in ["C", "M"]:
+        if move_mode in ("C", "M"):
             output_folder_exists = os.path.exists(output_folder_path)
             if not output_folder_exists:
                 try:
