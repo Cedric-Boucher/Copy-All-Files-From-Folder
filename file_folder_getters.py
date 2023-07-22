@@ -50,7 +50,7 @@ def limit_files_by_file_extension(filepaths: tuple[str], file_extensions: tuple[
     return new_filepaths
 
 
-def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]:
+def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]: # FIXME not particularly useful anymore? it's just a bit odd
     """
     gets all files from path which:
         are less than or equal to the size cutoff if is_max is True
@@ -74,6 +74,30 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
             files_sizes_pairs.append((filepath, file_size))
 
     return tuple(files_sizes_pairs)
+
+
+def limit_files_by_size(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[str]:
+    """
+    limits files:
+        are less than or equal to the size cutoff if is_max is True
+        are greater than or equal to the size cutoff if is_max is False
+    """
+    assert (isinstance(filepaths, tuple)), "path does not exist"
+    assert (type(size_cutoff) == int), "size cutoff was not an int"
+    assert (size_cutoff >= 0), "size cutoff was negative"
+    assert (type(is_max) == bool), "is_max was not a bool"
+
+    new_filepaths: list[str] = list()
+
+    for filepath in filepaths:
+        try: # faster than checking if file exists
+            file_size = os.stat(filepath).st_size
+        except:
+            continue # skip filepath
+        if (is_max and file_size <= size_cutoff) or (not is_max and file_size >= size_cutoff):
+            new_filepaths.append(filepath)
+
+    return tuple(new_filepaths)
 
 
 def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple[tuple[str, str]]:
@@ -298,6 +322,11 @@ if __name__ == "__main__":
     print(len(files))
     print(files[:20])
     print("limited by file extension in {} seconds".format(time() - new_time))
+    new_time = time()
+    files = limit_files_by_size(files, 1024**2, is_max=False)
+    print(len(files))
+    print(files[:20])
+    print("limited by filesize in {} seconds".format(time() - new_time))
 
 
     """
