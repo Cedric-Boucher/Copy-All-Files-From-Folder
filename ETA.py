@@ -18,7 +18,7 @@ class ETA:
         if progress != 0:
             estimated_total_time = (time_delta / progress)
         else:
-            estimated_total_time = 2**63 # unnecessarily large number
+            estimated_total_time = (3.15 * 10**7) # 1 year
         if progress > 1:
             progress = 1
         self.__time_remaining = (estimated_total_time - time_delta)

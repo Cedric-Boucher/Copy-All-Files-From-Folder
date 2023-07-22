@@ -9,27 +9,50 @@ from time import time
 import argparse
 
 
-def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str]:
+def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, bool]:
     """
     takes care of parsing the command line arguments passed to the program
 
     returns tuple:
-    (get_file_extensions: bool, input_folder: str, output_folder: str, file_extensions: list[str], file_beginnings: list[str], operation: str)
+    (get_file_extensions: bool,
+    input_folder: str,
+    output_folder: str,
+    file_extensions: list[str],
+    file_beginnings: list[str],
+    operation: str,
+    confirm_permanent_delete: bool,
+    keep_folder_structure: bool,
+    min_filesize: int,
+    max_filesize: int)
     """
     parser = argparse.ArgumentParser(description="Does various things related to file handling and moving")
-    parser.add_argument("--get_file_extensions", "-gfe", type=bool, nargs="?", help="bool, True for getting file extensions", choices=(True, False), default=False)
+    parser.add_argument("--get_file_extensions", "-gfe", help="bool, True for getting file extensions", action="store_true", default=False)
     parser.add_argument("--input_folder", "-if", type=str, nargs="?", required=True, help="str, path to the input folder for processing")
     parser.add_argument("--output_folder", "-of", type=str, nargs="?", help="str, path to the output folder for processing")
     parser.add_argument("--file_extensions", "-fe", type=str, nargs="*", help="str, list the file extensions you want to limit processing to", default=[])
     parser.add_argument("--file_beginnings", "-fb", type=str, nargs="*", help="str, list the file beginnings you want to limit processing to", default=[])
+    parser.add_argument("--min_filesize", "-minfs", type=int, nargs="?", help="int, the minimum filesize to consider for the operation", default=0)
+    parser.add_argument("--max_filesize", "-maxfs", type=int, nargs="?", help="int, the maximum filesize to consider for the operation", default=2**64)
+    parser.add_argument("--keep_folder_structure", "-kfs", type=bool, nargs="?", help="bool, True to keep folder structure as is, False to have no subfolders in output", choices=(True, False), default=True)
     parser.add_argument("--operation", "-op", type=str, nargs="?", choices=("C", "M", "T", "D"), help="str, file operation to perform (Copy, Move, Trash, Delete)")
-    parser.add_argument("--confirm_permanent_delete", "-cpd", type=bool, nargs="?", help="bool, required to be True to permanently delete any files", choices=(True, False), default=False)
+    parser.add_argument("--confirm_permanent_delete", "-cpd", help="bool, required to be True to permanently delete any files", action="store_true", default=False)
     args = parser.parse_args()
 
-    return (args.get_file_extensions, args.input_folder, args.output_folder, args.file_extensions, args.file_beginnings, args.operation, args.confirm_permanent_delete)
+    output = (args.get_file_extensions,
+              args.input_folder,
+              args.output_folder,
+              args.file_extensions,
+              args.file_beginnings,
+              args.operation,
+              args.confirm_permanent_delete,
+              args.keep_folder_structure, 
+              args.min_filesize,
+              args.max_filesize)
+
+    return output
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64, move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -48,7 +71,38 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     assert (os.path.exists(input_folder)), "input_folder does not exist"
     assert (type(keep_folder_structure) == bool), "keep_folder_structure was not bool"
 
-    same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
+    input_folder = os.path.abspath(input_folder) # fix slashes
+
+    same_drive_input_output = False # in case it doesn't get defined below
+
+    if move_mode in ["C", "M"]:
+        if not os.path.exists(output_folder):
+            try:
+                os.makedirs(output_folder)
+            except:
+                assert (False), "destination folder didn't exist and couldn't be created"
+        output_folder = os.path.abspath(output_folder) # fix slashes
+        same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
+
+    # get all files
+    print("finding all files in input folder...")
+    input_files = get_all_files_in_folder(input_folder)
+    number_of_files_total = len(input_files)
+    print("{} files found".format(number_of_files_total))
+
+    # pass list of files through filters
+    print("passing files through filters...")
+    # don't perform limit operations unless defaults have been changed, to save time
+    if len(file_extensions) > 0:
+        input_files = limit_files_by_file_extension(input_files, file_extensions)
+    if len(start_with) > 0:
+        input_files = limit_files_by_file_start(input_files, start_with)
+    if (min_filesize != 0) or (max_filesize != 2**64):
+        input_files = limit_files_by_size(input_files, min_filesize, max_filesize)
+    new_number_of_files_total = len(input_files)
+    print("{} files left to operate on".format(new_number_of_files_total))
+    number_of_files_total = new_number_of_files_total
+
     if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
         # copy / move time is mainly based on raw MB/s throughput of drives
         rate_units = "MB"
@@ -57,19 +111,10 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         # move time is based on seek time and is constant regardless of file size
         rate_units = "files"
 
-
-    if move_mode in ["C", "M"]:
-        if not os.path.exists(output_folder):
-            try:
-                os.mkdir(output_folder)
-            except:
-                assert (False), "destination folder didn't exist and couldn't be created"
-
-    number_of_files_total = get_num_files_in_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
     number_of_files_processed = 0
     error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
 
-    total_size = get_size_of_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with)
+    total_size = get_size_of_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with) # FIXME will need to be replaced later
     total_processed_size = 0
 
     if move_mode == "C":
@@ -80,25 +125,16 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
         print("Trashing Files from \"{}\"".format(input_folder))
     elif move_mode == "D":
         print("PERMANENTLY DELETING Files from \"{}\"".format(input_folder))
-        confirm_delete = (input("Are you sure you want to continue? (Y, anything else to cancel)\n") == "Y")
-        if not confirm_delete:
-            return [] # since output should be list of tuples, return empty list
 
     print("") # newline since first progress_bar() will \r
-
-    if len(file_extensions) == 0:
-        file_extensions = "" # all strings end with ""
-
-    if len(start_with) == 0:
-        start_with = "" # all strings start with ""
-
 
     progress_bar_object = progress_bar(100, rate_units=rate_units) # created progress bar object
     progress = 0
 
-    with ThreadPoolExecutor() as executor:
-        for path, _, files in os.walk(os.path.abspath(input_folder)):
-            unit_output = executor.submit(move_files_unit_processor, files, path, input_folder, output_folder, start_with, file_extensions, move_mode, keep_folder_structure)
+
+    with ThreadPoolExecutor() as executor: # FIXME slow right now, need to group files
+        for filepath in input_files:
+            unit_output = executor.submit(__move_files_unit_processor, (filepath,), input_folder, output_folder, move_mode, keep_folder_structure)
             (new_error_counts, new_number_of_files_processed, number_of_failed_files, new_total_processed_size, failed_files_size) = unit_output.result()
             number_of_files_total -= number_of_failed_files
             total_size -= failed_files_size
@@ -118,7 +154,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             else:
                 # basically just changing a few bytes in the filesystem per file,
                 # move time is based on seek time and is constant regardless of file size
-                progress = number_of_files_processed/number_of_files_total
+                progress = number_of_files_processed / number_of_files_total
                 rate_progress = number_of_files_processed
 
             progress_bar_object.print_progress_bar(progress, rate_progress)
@@ -132,7 +168,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     return error_return
 
 
-def move_files_unit_processor(files: list[str], path: str, input_folder, output_folder, start_with: tuple[str], end_with: tuple[str], move_mode: str, keep_folder_structure: bool):
+def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_folder, move_mode: str, keep_folder_structure: bool):
     """
     multithreaded unit processor for move files
     do not use on its own
@@ -143,49 +179,47 @@ def move_files_unit_processor(files: list[str], path: str, input_folder, output_
     number_of_failed_files = 0
     failed_files_size = 0
 
-    files_with_valid_extension_and_start = (file for file in files if (file.endswith(end_with) and file.startswith(start_with)))
-    for file in files_with_valid_extension_and_start:
+    for filepath in filepaths:
         success = (-1, "") # reset to assume no problems happen
-        source_file_path = os.path.abspath(path+"/"+file)
-        current_filesize = os.stat(source_file_path)[6] # bytes filesize
+        current_filesize = os.stat(filepath).st_size # bytes filesize
         total_processed_size += current_filesize
 
-        if keep_folder_structure:
-            relative_output_path = path.removeprefix(input_folder) # the subfolder structure inside of input_folder
+        if keep_folder_structure and move_mode in ("C", "M"):
+            relative_output_path = os.path.split(filepath)[0].removeprefix(input_folder) # the subfolder structure inside of input_folder
             output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
         else:
             output_folder_path = output_folder
 
-        if move_mode in ["C", "M"]:
+        if move_mode in ("C", "M"):
             output_folder_exists = os.path.exists(output_folder_path)
             if not output_folder_exists:
                 try:
                     os.makedirs(output_folder_path)
                 except:
                     assert (False), "destination folder didn't exist and couldn't be created"
-            output_file_exists = os.path.exists(os.path.abspath(output_folder_path+"/"+file))
+            output_file_exists = os.path.exists(os.path.abspath(output_folder_path+"/"+os.path.split(filepath)[1]))
 
         try:
             if move_mode == "C":
                 if not output_file_exists:
-                    copy2(source_file_path, output_folder_path)
+                    copy2(filepath, output_folder_path)
                 else:
                     # if file already exists, check if it's the same file, etc
-                    success = move_file_error(source_file_path, output_folder_path, file, move_mode)
+                    success = move_file_error(filepath, output_folder_path, move_mode)
                     error_counts[success[0]] += 1
             elif move_mode == "M":
                 if not output_file_exists:
-                    move(source_file_path, output_folder_path)
+                    move(filepath, output_folder_path)
                 else:
                     # if file already exists, you can trash this copy
-                    success = move_file_error(source_file_path, output_folder_path, file, move_mode)
+                    success = move_file_error(filepath, output_folder_path, move_mode)
                     error_counts[success[0]] += 1
             elif move_mode == "T":
-                send2trash(source_file_path)
+                send2trash(filepath)
             elif move_mode == "D":
-                os.remove(source_file_path)
+                os.remove(filepath)
         except Error: # this shouldn't happen, and the line below will not be able to fix it
-            success = move_file_error(source_file_path, output_folder_path, file, move_mode)
+            success = move_file_error(filepath, output_folder_path, move_mode)
             error_counts[success[0]] += 1
         except FileNotFoundError: # file was deleted, renamed or moved before it could be processed
             error_counts[6] += 1
@@ -203,7 +237,7 @@ def move_files_unit_processor(files: list[str], path: str, input_folder, output_
     return (error_counts, number_of_files_processed, number_of_failed_files, total_processed_size, failed_files_size)
 
 
-def move_file_error(source_file_path, destination_folder, filename: str, move_mode: str = "C", max_retries = 100) -> tuple[int, str]:
+def move_file_error(filepath: str, destination_folder, move_mode: str = "C", max_retries = 100) -> tuple[int, str]:
     """
     deals with errors in copying a file.
     it's probably just that the destination already has the filename
@@ -211,8 +245,9 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
     returns a pair of error number and accompanying string to explain the error
     """
     assert (move_mode in ["C", "M"]), "move_mode invalid for error handling"
-    assert (os.path.exists(source_file_path)), "source_file_path does not exist"
-    assert (type(filename) == str), "filename was not string"
+    assert (os.path.exists(filepath)), "filepath does not exist"
+
+    filename = os.path.split(filepath)[1]
 
     errors: list[tuple[int, str]] = [(0, "File already existed and nothing was changed"),
                                      (1, "File already existed and extra copy was trashed"),
@@ -224,7 +259,7 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
     if not os.path.exists(destination_folder):
         try:
-            os.mkdir(destination_folder)
+            os.makedirs(destination_folder)
         except:
             assert (False), "destination folder didn't exist and couldn't be created"
 
@@ -232,12 +267,12 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
     if error_is_filename_conflict:
         # check if files are the same
-        files_are_identical = compare_files(source_file_path, os.path.abspath(destination_folder+"/"+filename), shallow = False)
+        files_are_identical = compare_files(filepath, os.path.abspath(destination_folder+"/"+filename), shallow = False)
 
         if files_are_identical:
             # assumed to be the same file, original can be safely moved to trash
             if move_mode == "M":
-                send2trash(source_file_path)
+                send2trash(filepath)
                 return errors[1]
             # if move mode was copy then do nothing
             return errors[0]
@@ -251,11 +286,11 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
             if not destination_exists:
                 break # new_filename can be used
 
-            files_are_identical = compare_files(source_file_path, os.path.abspath(destination_folder+"/"+filename), shallow = False)
+            files_are_identical = compare_files(filepath, os.path.abspath(destination_folder+"/"+filename), shallow = False)
 
             if files_are_identical:
                 if move_mode == "M":
-                    send2trash(source_file_path)
+                    send2trash(filepath)
                     return errors[1]
                 # if move mode was copy then do nothing
                 return errors[0]
@@ -275,9 +310,9 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
         # so we use new_filename to copy/move the source file
         try:
             if move_mode == "C":
-                copy2(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
+                copy2(filepath, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
             else:
-                move(source_file_path, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
+                move(filepath, os.path.abspath(destination_folder+"/"+new_filename)) # this is guaranteed not to overwrite a file
             return errors[4] # error was resolved
         except Error:
             # couldn't resolve the issue for some reason
@@ -290,22 +325,23 @@ def move_file_error(source_file_path, destination_folder, filename: str, move_mo
 
 def main() -> None:
     start_time = time()
-    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed) = parse_inputs()
+    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed, keep_folder_structure, min_filesize, max_filesize) = parse_inputs() # TODO use min and max filesizes
     assert (os.path.exists(input_folder)), "input folder does not exist"
 
     if get_file_extensions_or_run_program: # True means get file extensions
-        [print(extension, end=" ") for extension in get_file_extensions(input_folder)]
+        filepaths = get_all_files_in_folder(input_folder)
+        [print(extension, end=" ") for extension in get_file_extensions(filepaths)]
         print("") # add a newline after the list
 
     else:
         assert (move_mode in ("C", "M", "T", "D")), "operation type invalid or not given"
-        assert (move_mode != "D" or permanent_delete_confirmed), "permanent deletion must be confirmed with --confirm_permanent_delete or -cpd argument set to True"
+        assert (move_mode != "D" or permanent_delete_confirmed), "permanent deletion must be confirmed with --confirm_permanent_delete or -cpd"
         if move_mode not in ("T", "D"):
             assert (os.path.exists(output_folder)), "output folder does not exist"
         file_extensions = tuple(file_extensions)
         file_starts = tuple(file_starts)
 
-        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode)))
+        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, min_filesize, max_filesize, move_mode, keep_folder_structure)))
 
     print("{} seconds to run".format(time() - start_time))
     return None
