@@ -217,6 +217,7 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
 
     total_size = 0
     for parent_path, _, files in os.walk(os.path.abspath(path)):
+        files: list[str]
         for file in files:
             if file.endswith(file_extensions) and file.startswith(start_with):
                 try:
