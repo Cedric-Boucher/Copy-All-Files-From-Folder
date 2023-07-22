@@ -31,6 +31,7 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
 
     for filepath in filepaths:
         assert (isinstance(filepath, str)), "at least one filepath was not a string"
+        filepath = os.path.split(filepath)[0] # get only the filename (to exclude folders with "." with files with no extension)
         file_extension = "."+filepath.split(".")[-1]
         file_extensions.add(file_extension)
 
