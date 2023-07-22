@@ -37,6 +37,19 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     return tuple(file_extensions)
 
 
+def limit_files_by_file_extension(filepaths: tuple[str], file_extensions: tuple[str]) -> tuple[str]:
+    """
+    returns a limited version of the input filepaths tuple, by only keeping
+    any files that have a file extension in the file_extensions tuple
+    """
+    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
+    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
+
+    new_filepaths: tuple[str] = tuple([filepath for filepath in filepaths if filepath.endswith(file_extensions)])
+
+    return new_filepaths
+
+
 def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]:
     """
     gets all files from path which:
@@ -278,6 +291,16 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 if __name__ == "__main__":
     start_time = time()
     files = get_all_files_in_folder("C:/")
+    print(len(files))
+    print("got files in {} seconds".format(time() - start_time))
+    new_time = time()
+    files = limit_files_by_file_extension(files, (".txt",))
+    print(len(files))
+    print(files[:20])
+    print("limited by file extension in {} seconds".format(time() - new_time))
+
+
+    """
     duplicates = get_duplicate_files(files, files)
 
     import csv
@@ -288,4 +311,5 @@ if __name__ == "__main__":
                 csv_writer.writerow(duplicate_pair)
             except UnicodeEncodeError:
                 pass
+    """
     print("{} seconds".format(time() - start_time))
