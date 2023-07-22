@@ -94,7 +94,7 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
     return tuple(files_sizes_pairs)
 
 
-def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**32) -> tuple[str]:
+def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**64) -> tuple[str]:
     """
     limits files to only keep files between min_size and max_size
     min and maxes are inclusive

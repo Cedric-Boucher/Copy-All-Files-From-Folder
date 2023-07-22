@@ -52,7 +52,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     return output
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64, move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
