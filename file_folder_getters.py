@@ -63,7 +63,7 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
     return tuple(files_sizes_pairs)
 
 
-def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple[tuple[str, str]]:
     """
     returns a tuple of all the files that are duplicated between path1 and path2,
     as a tuple of the full path of the first instance, and the full path of the second instance.
@@ -72,10 +72,10 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     does not return files that have 0 bytes size.
     """
-    assert (os.path.exists(path1)), "path1 does not exist"
-    assert (os.path.exists(path2)), "path2 does not exist"
+    assert (isinstance(filepaths1, tuple)), "path1 does not exist"
+    assert (isinstance(filepaths2, tuple)), "path2 does not exist"
 
-    paths_are_identical = (os.path.abspath(path1) == os.path.abspath(path2))
+    paths_are_identical = (set(filepaths1) == set(filepaths2))
     duplicate_files: list[tuple[str, str]] = list()
     file_paths_by_size: dict[int, tuple[list[tuple[str, str]]]] = dict()
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
@@ -84,27 +84,28 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
 
     print("counting files in folders...")
 
-    files_in_path1 = get_num_files_in_folder(path1)
+    files_in_path1 = len(filepaths1)
     if not paths_are_identical:
-        files_in_path2 = get_num_files_in_folder(path2)
+        files_in_path2 = get_num_files_in_folder(filepaths2)
 
     print("getting filesizes and hashes...")
 
     progress = progress_bar(100, rate_units="files")
     file_counter = 0
 
-    for file_path1, _, files1 in os.walk(os.path.abspath(path1)):
-        full_paths = [os.path.abspath(file_path1+"/"+file) for file in files1 if os.path.exists(file_path1+"/"+file)]
-        sizes = [os.stat(file).st_size for file in full_paths]
-        file_counter += len(full_paths)
-        hashes = [get_hash(file, buffer_chunk_size=1048576, only_read_one_chunk=True) for file in full_paths]
-        for i in range(len(full_paths)):
-            if sizes[i] == 0:
-                continue # all files of 0 bytes would match, which is very slow and unnecessary
-            try:
-                file_paths_by_size[sizes[i]][0].append((full_paths[i], hashes[i]))
-            except KeyError: # can't append if the list hadn't been created
-                file_paths_by_size[sizes[i]] = ([(full_paths[i], hashes[i])], list())
+    for filepath in filepaths1:
+        file_counter += 1
+        try:
+            file_size = os.stat(filepath).st_size
+        except:
+            continue # skipe filepath
+        if file_size == 0:
+            continue # all files of 0 bytes would match, which is very slow and unnecessary
+        file_hash = get_hash(filepath, buffer_chunk_size=1048576, only_read_one_chunk=True)
+        try:
+            file_paths_by_size[file_size][0].append((filepath, file_hash))
+        except KeyError: # can't append if the list hadn't been created
+            file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
         progress.print_progress_bar(file_counter / files_in_path1, file_counter)
 
     print("") # to add a newline after the end of the progress bar
@@ -112,18 +113,19 @@ def get_duplicate_files(path1, path2) -> tuple[tuple[str, str]]:
     if not paths_are_identical:
         progress = progress_bar(100, rate_units="files")
         file_counter = 0
-        for file_path2, _, files2 in os.walk(os.path.abspath(path2)):
-            full_paths = [os.path.abspath(file_path2+"/"+file) for file in files2 if os.path.exists(file_path2+"/"+file)]
-            sizes = [os.stat(file).st_size for file in full_paths]
-            file_counter += len(full_paths)
-            hashes = [get_hash(file, buffer_chunk_size=1048576, only_read_one_chunk=True) for file in full_paths]
-            for i in range(len(full_paths)):
-                if sizes[i] == 0:
-                    continue # all files of 0 bytes would match, which is very slow and unnecessary
-                try:
-                    file_paths_by_size[sizes[i]][1].append((full_paths[i], hashes[i]))
-                except KeyError: # can't append if the list hadn't been created
-                    file_paths_by_size[sizes[i]] = (list(), [(full_paths[i], hashes[i])])
+        for filepath in filepaths2:
+            file_counter += 1
+            try:
+                file_size = os.stat(filepath).st_size
+            except:
+                continue # skipe filepath
+            if file_size == 0:
+                continue # all files of 0 bytes would match, which is very slow and unnecessary
+            file_hash = get_hash(filepath, buffer_chunk_size=1048576, only_read_one_chunk=True)
+            try:
+                file_paths_by_size[file_size][0].append((filepath, file_hash))
+            except KeyError: # can't append if the list hadn't been created
+                file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
             progress.print_progress_bar(file_counter / files_in_path2, file_counter)
 
     print("") # to add a newline after the end of the progress bar
@@ -347,7 +349,8 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 
 if __name__ == "__main__":
     start_time = time()
-    duplicates = get_duplicate_files("C:/", "C:/")
+    files = get_all_files_in_folder("C:/")
+    duplicates = get_duplicate_files(files, files)
 
     import csv
     with open("duplicate_files.csv", "w", newline="") as file:
