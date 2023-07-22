@@ -53,7 +53,7 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
     files_sizes_pairs: list[tuple[str, int]] = list()
 
     for filepath in filepaths:
-        try:
+        try: # faster than checking if file exists
             file_size = os.stat(filepath).st_size
         except:
             continue # skip filepath
@@ -70,7 +70,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
 
     if path1 and path2 are the same, will ignore case when filenames match, of course.
 
-    does not return files that have 0 bytes size.
+    does not return files that have 0 bytes size, although all such files would match with each other.
     """
     assert (isinstance(filepaths1, tuple)), "path1 does not exist"
     assert (isinstance(filepaths2, tuple)), "path2 does not exist"
@@ -95,7 +95,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
 
     for filepath in filepaths1:
         file_counter += 1
-        try:
+        try: # faster than checking if file exists
             file_size = os.stat(filepath).st_size
         except:
             continue # skipe filepath
