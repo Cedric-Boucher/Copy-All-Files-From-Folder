@@ -94,16 +94,15 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
     return tuple(files_sizes_pairs)
 
 
-def limit_files_by_size(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[str]:
+def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**32) -> tuple[str]:
     """
-    limits files:
-        are less than or equal to the size cutoff if is_max is True
-        are greater than or equal to the size cutoff if is_max is False
+    limits files to only keep files between min_size and max_size
+    min and maxes are inclusive
     """
     assert (isinstance(filepaths, tuple)), "path does not exist"
-    assert (type(size_cutoff) == int), "size cutoff was not an int"
-    assert (size_cutoff >= 0), "size cutoff was negative"
-    assert (type(is_max) == bool), "is_max was not a bool"
+    assert (isinstance(min_size, int)), "min_size was not an int"
+    assert (isinstance(max_size, int)), "max_size was not an int"
+    assert (max_size >= min_size), "max_size must be greater than min_size"
 
     new_filepaths: list[str] = list()
 
@@ -112,7 +111,7 @@ def limit_files_by_size(filepaths: tuple[str], size_cutoff: int, is_max: bool = 
             file_size = os.stat(filepath).st_size
         except:
             continue # skip filepath
-        if (is_max and file_size <= size_cutoff) or (not is_max and file_size >= size_cutoff):
+        if file_size >= min_size and file_size <= max_size:
             new_filepaths.append(filepath)
 
     return tuple(new_filepaths)
