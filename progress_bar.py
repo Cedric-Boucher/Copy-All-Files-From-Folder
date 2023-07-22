@@ -9,13 +9,13 @@ class progress_bar:
     no newline is printed after the progress bar
     """
     def __init__(self, length: int, start_string = "~<{", end_string = "}>~", fill_char = "/", empty_char = "-", with_percentage = True, with_ETA = True, with_rate = True, rate_units = ""):
-        assert (type(length) == int), "type of length was not int"
+        assert (isinstance(length, int)), "type of length was not int"
         assert (length > 0), "length was negative"
-        assert (type(start_string) == str), "start_string was not string"
-        assert (type(end_string) == str), "end_string was not string"
-        assert (type(fill_char) == str), "fill_char was not string"
+        assert (isinstance(start_string, str)), "start_string was not string"
+        assert (isinstance(end_string, str)), "end_string was not string"
+        assert (isinstance(fill_char, str)), "fill_char was not string"
         assert (len(fill_char) == 1), "len(fill_char) was not 1"
-        assert (type(empty_char) == str), "empty_char was not string"
+        assert (isinstance(empty_char, str)), "empty_char was not string"
         assert (len(empty_char) == 1), "len(empty_char) was not 1"
         if with_rate:
             assert(type(rate_units) == str), "rate units was not a string"
@@ -40,8 +40,8 @@ class progress_bar:
 
 
     def __update_output_string(self, progress: float, rate_progress: float = None) -> None:
-        assert (type(progress) in (float, int)), "type of progress was not float or int"
-        assert (type(rate_progress) in (float, int) or rate_progress is None), "rate_progress was not None or float/int"
+        assert (isinstance(progress, (float, int))), "type of progress was not float or int"
+        assert (isinstance(rate_progress, (float, int)) or rate_progress is None), "rate_progress was not None or float/int"
 
         if progress > 1:
             progress = 1

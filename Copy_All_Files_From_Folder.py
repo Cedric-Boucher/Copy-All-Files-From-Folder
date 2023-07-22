@@ -66,10 +66,10 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     returns the errors
     """
     assert (move_mode in ["C", "M", "T", "D"]), "move_mode was not one of the options"
-    assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
-    assert (type(start_with) == tuple), "start_with was not a tuple"
+    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
+    assert (isinstance(start_with, tuple)), "start_with was not a tuple"
     assert (os.path.exists(input_folder)), "input_folder does not exist"
-    assert (type(keep_folder_structure) == bool), "keep_folder_structure was not bool"
+    assert (isinstance(keep_folder_structure, bool)), "keep_folder_structure was not bool"
 
     input_folder = os.path.abspath(input_folder) # fix slashes
 
@@ -244,7 +244,7 @@ def move_file_error(filepath: str, destination_folder, move_mode: str = "C", max
 
     returns a pair of error number and accompanying string to explain the error
     """
-    assert (move_mode in ["C", "M"]), "move_mode invalid for error handling"
+    assert (move_mode in ("C", "M")), "move_mode invalid for error handling"
     assert (os.path.exists(filepath)), "filepath does not exist"
 
     filename = os.path.split(filepath)[1]

@@ -79,9 +79,9 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
     returns a tuple of tuples of the full filepaths and their corresponding filesize
     """
     assert (isinstance(filepaths, tuple)), "path does not exist"
-    assert (type(size_cutoff) == int), "size cutoff was not an int"
+    assert (isinstance(size_cutoff, int)), "size cutoff was not an int"
     assert (size_cutoff >= 0), "size cutoff was negative"
-    assert (type(is_max) == bool), "is_max was not a bool"
+    assert (isinstance(is_max, bool)), "is_max was not a bool"
 
     files_sizes_pairs: list[tuple[str, int]] = list()
 
@@ -233,7 +233,7 @@ def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool 
     default buffer size of 16MiB
     """
     assert (os.path.exists(file)), "file doesn't exist"
-    assert (type(buffer_chunk_size) == int), "buffer chunk size needs to be an int"
+    assert (isinstance(buffer_chunk_size, int)), "buffer chunk size needs to be an int"
     assert (buffer_chunk_size > 0), "buffer chunk size was too small"
 
     sha256 = hashlib.sha256()
@@ -265,8 +265,8 @@ def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple
     original singlethreaded version (faster in my testing)
     """
     assert (os.path.exists(path)), "path does not exist"
-    assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
-    assert (type(start_with) == tuple), "start_with was not a tuple"
+    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
+    assert (isinstance(start_with, tuple)), "start_with was not a tuple"
 
     if len(file_extensions) == 0:
         file_extensions = "" # all strings end with ""
@@ -299,8 +299,8 @@ def get_size_of_folder_multithreaded(path, file_extensions: tuple[str] = (), sta
     in my testing this has actually been significantly slower than the singlethreaded version
     """
     assert (os.path.exists(path)), "path does not exist"
-    assert (type(file_extensions) == tuple), "file_extensions was not a tuple"
-    assert (type(start_with) == tuple), "start_with was not a tuple"
+    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
+    assert (isinstance(start_with, tuple)), "start_with was not a tuple"
 
     if len(file_extensions) == 0:
         file_extensions = "" # all strings end with ""
@@ -337,6 +337,7 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 if __name__ == "__main__":
     start_time = time()
     files = get_all_files_in_folder("C:/")
+    """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
     new_time = time()
@@ -354,9 +355,9 @@ if __name__ == "__main__":
     print(len(files))
     print(files)
     print("limited by file start in {} seconds".format(time() - new_time))
-
-
     """
+
+    
     duplicates = get_duplicate_files(files, files)
 
     import csv
@@ -367,5 +368,5 @@ if __name__ == "__main__":
                 csv_writer.writerow(duplicate_pair)
             except UnicodeEncodeError:
                 pass
-    """
+    
     print("{} seconds".format(time() - start_time))
