@@ -207,6 +207,9 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                                         and hash1 == file_hash_pair2[1])]
             # only compare files byte-by-byte if they have the same filetype, aren't the same path, and have the same hash
             for file2 in files_to_compare:
+                pair_already_in_duplicate_files = ((file2, file1) in duplicate_files)
+                if pair_already_in_duplicate_files:
+                    continue # skip, as we have already found this duplicate
                 try:
                     files_are_identical = compare_files(file1, file2, shallow=False)
                 except:
