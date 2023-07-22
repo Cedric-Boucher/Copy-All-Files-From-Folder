@@ -31,8 +31,8 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     parser.add_argument("--output_folder", "-of", type=str, nargs="?", help="str, path to the output folder for processing")
     parser.add_argument("--file_extensions", "-fe", type=str, nargs="*", help="str, list the file extensions you want to limit processing to", default=[])
     parser.add_argument("--file_beginnings", "-fb", type=str, nargs="*", help="str, list the file beginnings you want to limit processing to", default=[])
-    parser.add_argument("--min_filesize", "-minfs", type=int, nargs="?", help="int, the minimum filesize to consider for the operation")
-    parser.add_argument("--max_filesize", "-maxfs", type=int, nargs="?", help="int, the maximum filesize to consider for the operation")
+    parser.add_argument("--min_filesize", "-minfs", type=int, nargs="?", help="int, the minimum filesize to consider for the operation", default=0)
+    parser.add_argument("--max_filesize", "-maxfs", type=int, nargs="?", help="int, the maximum filesize to consider for the operation", default=2**64)
     parser.add_argument("--keep_folder_structure", "-kfs", type=bool, nargs="?", help="bool, True to keep folder structure as is, False to have no subfolders in output", choices=(True, False), default=True)
     parser.add_argument("--operation", "-op", type=str, nargs="?", choices=("C", "M", "T", "D"), help="str, file operation to perform (Copy, Move, Trash, Delete)")
     parser.add_argument("--confirm_permanent_delete", "-cpd", help="bool, required to be True to permanently delete any files", action="store_true", default=False)
@@ -71,10 +71,13 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     assert (os.path.exists(input_folder)), "input_folder does not exist"
     assert (type(keep_folder_structure) == bool), "keep_folder_structure was not bool"
 
+    input_folder = os.path.abspath(input_folder) # fix slashes
+
     if move_mode in ["C", "M"]:
         if not os.path.exists(output_folder):
             try:
                 os.makedirs(output_folder)
+                output_folder = os.path.abspath(output_folder) # fix slashes
             except:
                 assert (False), "destination folder didn't exist and couldn't be created"
 
@@ -180,7 +183,7 @@ def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_fold
         total_processed_size += current_filesize
 
         if keep_folder_structure:
-            relative_output_path = os.path.basename(filepath).removeprefix(input_folder) # the subfolder structure inside of input_folder
+            relative_output_path = os.path.split(filepath)[0].removeprefix(input_folder) # the subfolder structure inside of input_folder
             output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
         else:
             output_folder_path = output_folder
