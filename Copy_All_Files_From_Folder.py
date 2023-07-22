@@ -71,8 +71,24 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     assert (os.path.exists(input_folder)), "input_folder does not exist"
     assert (type(keep_folder_structure) == bool), "keep_folder_structure was not bool"
 
-    all_files_in_input_folder = get_all_files_in_folder(input_folder)
+    # get all files
+    print("finding all files in input folder...")
+    input_files = get_all_files_in_folder(input_folder)
+    number_of_files_total = len(input_files)
+    print("{} files found".format(number_of_files_total))
 
+    # pass list of files through filters
+    print("passing files through filters...")
+    # don't perform limit operations unless defaults have been changed, to save time
+    if len(file_extensions) > 0:
+        input_files = limit_files_by_file_extension(input_files, file_extensions)
+    if len(start_with) > 0:
+        input_files = limit_files_by_file_start(input_files, start_with)
+    if (min_filesize != 0) or (max_filesize != 2**64):
+        input_files = limit_files_by_size(input_files, min_filesize, max_filesize)
+    new_number_of_files_total = len(input_files)
+    print("{} files left to operate on".format(new_number_of_files_total))
+    number_of_files_total = new_number_of_files_total
 
     same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
     if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
@@ -91,7 +107,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             except:
                 assert (False), "destination folder didn't exist and couldn't be created"
 
-    number_of_files_total = len(all_files_in_input_folder) # FIXME does not account for limiters like file extensions
+    number_of_files_total = len(input_files)
     number_of_files_processed = 0
     error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
 
@@ -331,7 +347,7 @@ def main() -> None:
         file_extensions = tuple(file_extensions)
         file_starts = tuple(file_starts)
 
-        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, move_mode, keep_folder_structure)))
+        print("\n\nerrors: " + str(move_files(input_folder, output_folder, file_extensions, file_starts, min_filesize, max_filesize, move_mode, keep_folder_structure)))
 
     print("{} seconds to run".format(time() - start_time))
     return None
