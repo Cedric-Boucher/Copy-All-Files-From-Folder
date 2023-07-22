@@ -194,7 +194,7 @@ def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool 
     return sha256.hexdigest()
 
 
-def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
+def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int: # FIXME will be replaced/updated when I implement getting os.stat of all files in advance
     """
     gets the sum of all file sizes in path and all subfolders, that match file_extensions and start_with
     set print_stats_every_x_seconds to -1 to never print
