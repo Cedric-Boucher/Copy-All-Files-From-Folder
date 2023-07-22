@@ -32,8 +32,8 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     for filepath in filepaths:
         assert (isinstance(filepath, str)), "at least one filepath was not a string"
         filepath = os.path.basename(filepath) # get only the filename (to exclude folders with "." with files with no extension)
-        if not filepath.startswith("."): # some MacOS files start with "." for some reason
-            file_extension = "."+filepath.split(".")[-1]
+        file_extension = "."+filepath.split(".")[-1]
+        if (not filepath.startswith(".")) and (not file_extension.count(" ")): # makes sure files don't start with "." or contain a space after "."
             file_extensions.add(file_extension)
 
     return tuple(file_extensions)
