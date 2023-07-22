@@ -26,7 +26,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     max_filesize: int)
     """
     parser = argparse.ArgumentParser(description="Does various things related to file handling and moving")
-    parser.add_argument("--get_file_extensions", "-gfe", type=bool, nargs="?", help="bool, True for getting file extensions", choices=(True, False), default=False)
+    parser.add_argument("--get_file_extensions", "-gfe", help="bool, True for getting file extensions", action="store_true", default=False)
     parser.add_argument("--input_folder", "-if", type=str, nargs="?", required=True, help="str, path to the input folder for processing")
     parser.add_argument("--output_folder", "-of", type=str, nargs="?", help="str, path to the output folder for processing")
     parser.add_argument("--file_extensions", "-fe", type=str, nargs="*", help="str, list the file extensions you want to limit processing to", default=[])
@@ -35,7 +35,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     parser.add_argument("--max_filesize", "-maxfs", type=int, nargs="?", help="int, the maximum filesize to consider for the operation")
     parser.add_argument("--keep_folder_structure", "-kfs", type=bool, nargs="?", help="bool, True to keep folder structure as is, False to have no subfolders in output", choices=(True, False), default=True)
     parser.add_argument("--operation", "-op", type=str, nargs="?", choices=("C", "M", "T", "D"), help="str, file operation to perform (Copy, Move, Trash, Delete)")
-    parser.add_argument("--confirm_permanent_delete", "-cpd", type=bool, nargs="?", help="bool, required to be True to permanently delete any files", choices=(True, False), default=False)
+    parser.add_argument("--confirm_permanent_delete", "-cpd", help="bool, required to be True to permanently delete any files", action="store_true", default=False)
     args = parser.parse_args()
 
     output = (args.get_file_extensions,
@@ -180,7 +180,7 @@ def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_fold
         total_processed_size += current_filesize
 
         if keep_folder_structure:
-            relative_output_path = os.path.split(filepath)[0].removeprefix(input_folder) # the subfolder structure inside of input_folder
+            relative_output_path = os.path.basename(filepath).removeprefix(input_folder) # the subfolder structure inside of input_folder
             output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
         else:
             output_folder_path = output_folder
@@ -324,7 +324,8 @@ def main() -> None:
     assert (os.path.exists(input_folder)), "input folder does not exist"
 
     if get_file_extensions_or_run_program: # True means get file extensions
-        [print(extension, end=" ") for extension in get_file_extensions(input_folder)]
+        filepaths = get_all_files_in_folder(input_folder)
+        [print(extension, end=" ") for extension in get_file_extensions(filepaths)]
         print("") # add a newline after the list
 
     else:
