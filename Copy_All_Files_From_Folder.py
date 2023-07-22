@@ -333,7 +333,7 @@ def main() -> None:
 
     else:
         assert (move_mode in ("C", "M", "T", "D")), "operation type invalid or not given"
-        assert (move_mode != "D" or permanent_delete_confirmed), "permanent deletion must be confirmed with --confirm_permanent_delete or -cpd argument set to True"
+        assert (move_mode != "D" or permanent_delete_confirmed), "permanent deletion must be confirmed with --confirm_permanent_delete or -cpd"
         if move_mode not in ("T", "D"):
             assert (os.path.exists(output_folder)), "output folder does not exist"
         file_extensions = tuple(file_extensions)
