@@ -73,14 +73,16 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     input_folder = os.path.abspath(input_folder) # fix slashes
 
+    same_drive_input_output = False # in case it doesn't get defined below
+
     if move_mode in ["C", "M"]:
         if not os.path.exists(output_folder):
             try:
                 os.makedirs(output_folder)
-                output_folder = os.path.abspath(output_folder) # fix slashes
-                same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
             except:
                 assert (False), "destination folder didn't exist and couldn't be created"
+        output_folder = os.path.abspath(output_folder) # fix slashes
+        same_drive_input_output = (os.path.splitdrive(input_folder)[0] == os.path.splitdrive(output_folder)[0])
 
     # get all files
     print("finding all files in input folder...")
