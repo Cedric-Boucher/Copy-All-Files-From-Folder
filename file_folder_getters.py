@@ -179,9 +179,9 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                 continue # all files of 0 bytes would match, which is very slow and unnecessary
             file_hash = get_hash(filepath, buffer_chunk_size=1048576, only_read_one_chunk=True)
             try:
-                file_paths_by_size[file_size][0].append((filepath, file_hash))
+                file_paths_by_size[file_size][1].append((filepath, file_hash))
             except KeyError: # can't append if the list hadn't been created
-                file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
+                file_paths_by_size[file_size] = (list(), [(filepath, file_hash)])
             progress.print_progress_bar(file_counter / files_in_path2, file_counter)
 
     print("") # to add a newline after the end of the progress bar
