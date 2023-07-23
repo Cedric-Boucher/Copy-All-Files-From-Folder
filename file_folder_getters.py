@@ -132,7 +132,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
     assert (isinstance(filepaths2, tuple)), "path2 does not exist"
 
     paths_are_identical = (set(filepaths1) == set(filepaths2))
-    duplicate_files: set[set[str, str]] = set
+    duplicate_files: set[tuple[str, str]] = set()
     file_paths_by_size: dict[int, tuple[list[tuple[str, str]]]] = dict()
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
     # inside that tuple is a list of tuples containing
@@ -207,7 +207,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                                         and hash1 == file_hash_pair2[1])]
             # only compare files byte-by-byte if they have the same filetype, aren't the same path, and have the same hash
             for file2 in files_to_compare:
-                pair_already_in_duplicate_files = duplicate_files.issuperset(set((file1, file2)))
+                pair_already_in_duplicate_files = (duplicate_files.issuperset((file1, file2)) or duplicate_files.issuperset((file2, file1)))
                 if pair_already_in_duplicate_files:
                     continue # skip, as we have already found this duplicate
                 try:
@@ -217,16 +217,12 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                 # verify that files are actually identical all the way through, byte for byte, since
                 # the hash only read the first little bit of each file
                 if files_are_identical:
-                    duplicate_files.add(set((file1, file2)))
+                    duplicate_files.add((file1, file2))
 
         current_key_index += 1
         progress.print_progress_bar(current_key_index/total_keys, current_key_index)
 
     print("") # to add a newline after the end of the progress bar
-
-    # convert back to expected output type: tuple[tuple[str, str]]
-    duplicate_files = list(duplicate_files)
-    duplicate_files = [tuple(duplicate_files[i]) for i in range(len(duplicate_files))]
 
     return tuple(duplicate_files)
 
@@ -340,7 +336,7 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 
 if __name__ == "__main__":
     start_time = time()
-    files = get_all_files_in_folder("C:/")
+    files = get_all_files_in_folder("C:/Users/onebi/Documents")
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
