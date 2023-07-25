@@ -21,6 +21,27 @@ def get_all_files_in_folder(path) -> tuple[str]:
     return tuple(files)
 
 
+def get_all_files_in_folder_recursive_multithreaded(path) -> tuple[str]:
+    """
+    same as above but multithreaded in a recursive way
+    """
+    files = list()
+
+    try:
+        files_or_subfolders = [os.path.abspath(path+"/"+i) for i in os.listdir(os.path.abspath(path))]
+    except PermissionError:
+        return tuple()
+
+    sub_files = [i for i in files_or_subfolders if os.path.isfile(i)]
+    subfolders = [i for i in files_or_subfolders if os.path.isdir(i)]
+    files.extend(sub_files)
+    with ThreadPoolExecutor() as executor:
+        for subfolder in subfolders:
+            thread = executor.submit(get_all_files_in_folder_recursive_multithreaded, subfolder)
+            files.extend(thread.result())
+
+    return tuple(files)
+
 def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     """
     returns a tuple of all unique file extensions in a folder and subfolders
@@ -347,7 +368,8 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 
 if __name__ == "__main__":
     start_time = time()
-    files = get_all_files_in_folder("C:/Users/onebi/Documents/GitHub")
+    files = get_all_files_in_folder("C:/")
+    print(len(files))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
@@ -368,7 +390,7 @@ if __name__ == "__main__":
     print("limited by file start in {} seconds".format(time() - new_time))
     """
 
-    
+    """
     duplicates = get_duplicate_files(files, files)
 
     import csv
@@ -379,5 +401,5 @@ if __name__ == "__main__":
                 csv_writer.writerow(duplicate_pair)
             except UnicodeEncodeError:
                 pass
-    
+    """
     print("{} seconds".format(time() - start_time))
