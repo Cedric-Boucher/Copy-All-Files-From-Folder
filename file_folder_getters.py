@@ -21,27 +21,6 @@ def get_all_files_in_folder(path) -> tuple[str]:
     return tuple(files)
 
 
-def get_all_files_in_folder_recursive_multithreaded(path) -> tuple[str]:
-    """
-    same as above but multithreaded in a recursive way
-    """
-    files = list()
-
-    try:
-        files_or_subfolders = [os.path.abspath(path+"/"+i) for i in os.listdir(os.path.abspath(path))]
-    except PermissionError:
-        return tuple()
-
-    sub_files = [i for i in files_or_subfolders if os.path.isfile(i)]
-    subfolders = [i for i in files_or_subfolders if os.path.isdir(i)]
-    files.extend(sub_files)
-    with ThreadPoolExecutor() as executor:
-        for subfolder in subfolders:
-            thread = executor.submit(get_all_files_in_folder_recursive_multithreaded, subfolder)
-            files.extend(thread.result())
-
-    return tuple(files)
-
 def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     """
     returns a tuple of all unique file extensions in a folder and subfolders
