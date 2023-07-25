@@ -185,11 +185,20 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
             progress.print_progress_bar(file_counter / files_in_path2, file_counter)
 
     print("") # to add a newline after the end of the progress bar
-    print("finding duplicates...")
 
-    progress = progress_bar(100, rate_units="keys")
-    total_keys = len(file_paths_by_size.keys())
-    current_key_index = 0
+    progress = progress_bar(100, rate_units="file-comparisons")
+
+    total_comparisons = 0
+    if paths_are_identical:
+        for key in file_paths_by_size.keys():
+            total_comparisons += len(file_paths_by_size[key][0]) ** 2
+    else:
+        for key in file_paths_by_size.keys():
+            total_comparisons += len(file_paths_by_size[key][0]) * len(file_paths_by_size[key][1])
+
+    current_comparison = 0
+
+    print("finding duplicates...")
 
     for key in file_paths_by_size.keys():
         if paths_are_identical:
@@ -205,6 +214,9 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                                     if (file_hash_pair2[0].split(".")[-1] == file1_extension
                                         and file1 != file_hash_pair2[0]
                                         and hash1 == file_hash_pair2[1])]
+            current_comparison += len(files_to_compare)
+            total_comparisons -= (len(potential_duplicates[1]) - len(files_to_compare)) # number of files easily skipped
+            total_comparisons = max(total_comparisons, 0) # in case somehow it goes below 0
             # only compare files byte-by-byte if they have the same filetype, aren't the same path, and have the same hash
             for file2 in files_to_compare:
                 pair_already_in_duplicate_files = (duplicate_files.issuperset((file1, file2)) or duplicate_files.issuperset((file2, file1)))
@@ -219,8 +231,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                 if files_are_identical:
                     duplicate_files.add((file1, file2))
 
-        current_key_index += 1
-        progress.print_progress_bar(current_key_index/total_keys, current_key_index)
+            progress.print_progress_bar(current_comparison/total_comparisons, current_comparison)
 
     print("") # to add a newline after the end of the progress bar
 
@@ -336,7 +347,7 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 
 if __name__ == "__main__":
     start_time = time()
-    files = get_all_files_in_folder("C:/Users/onebi/Documents")
+    files = get_all_files_in_folder("C:/Users/onebi/Documents/GitHub")
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
