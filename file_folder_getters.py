@@ -39,6 +39,24 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     return tuple(file_extensions)
 
 
+def get_file_extensions_multithreaded(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]:
+    """
+    same as above but multithreaded
+    """
+    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
+
+    file_extensions = set()
+
+    grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+
+    with ThreadPoolExecutor() as executor:
+        for filepaths in grouped_filepaths:
+            thread = executor.submit(get_file_extensions, filepaths)
+            file_extensions.update(set(thread.result()))
+
+    return tuple(file_extensions)
+
+
 def limit_files_by_file_extension(filepaths: tuple[str], file_extensions: tuple[str]) -> tuple[str]:
     """
     returns a limited version of the input filepaths tuple, by only keeping
@@ -346,9 +364,11 @@ def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, star
 
 
 if __name__ == "__main__":
-    start_time = time()
     files = get_all_files_in_folder("C:/")
+    start_time = time()
     print(len(files))
+    file_extensions = get_file_extensions(files)
+    print(len(file_extensions))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
