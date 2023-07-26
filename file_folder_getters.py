@@ -1,6 +1,6 @@
 from time import time
 import os
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
 from filecmp import cmp as compare_files
 from progress_bar import progress_bar
 import hashlib
@@ -21,9 +21,9 @@ def get_all_files_in_folder(path) -> tuple[str]:
     return tuple(files)
 
 
-def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
+def get_file_extensions_singlethreaded(filepaths: tuple[str]) -> tuple[str]:
     """
-    returns a tuple of all unique file extensions in a folder and subfolders
+    returns a tuple of all unique file extensions in the filepaths given
     """
     assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
 
@@ -39,11 +39,9 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_file_extensions_multithreaded(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]:
+def get_file_extensions(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]:
     """
-    same as above but multithreaded
-
-    doesn't seem to be any faster than singlethreaded version for some reason
+    returns a tuple of all unique file extensions in the filepaths given
     """
     assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
 
@@ -51,10 +49,14 @@ def get_file_extensions_multithreaded(filepaths: tuple[str], files_per_group: in
 
     grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
 
-    with ThreadPoolExecutor() as executor:
+    threads = list()
+
+    with ProcessPoolExecutor() as executor:
         for filepaths in grouped_filepaths:
             thread = executor.submit(get_file_extensions, filepaths)
-            file_extensions.update(set(thread.result()))
+            threads.append(thread)
+        wait(threads)
+        [file_extensions.update(set(thread.result())) for thread in threads]
 
     return tuple(file_extensions)
 
@@ -321,13 +323,13 @@ def get_size_of_files_multithreaded(filepaths: tuple[str], files_per_group: int 
 
 
 if __name__ == "__main__":
-    files = get_all_files_in_folder("C:/Users/onebi/Documents")
+    files = get_all_files_in_folder("C:/")
     start_time = time()
     print(len(files))
-    size_of_folder = get_size_of_files_multithreaded(files)
-    print(size_of_folder)
-    #file_extensions = get_file_extensions(files)
-    #print(len(file_extensions))
+    #size_of_folder = get_size_of_files_multithreaded(files)
+    #print(size_of_folder)
+    file_extensions = get_file_extensions_multithreaded(files)
+    print(len(file_extensions))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
