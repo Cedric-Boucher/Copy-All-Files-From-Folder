@@ -1,6 +1,6 @@
 from time import time
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from filecmp import cmp as compare_files
 from progress_bar import progress_bar
 import hashlib
@@ -139,7 +139,7 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
     return tuple(new_filepaths)
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple[tuple[str, str]]:
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple[tuple[str, str]]: # TODO multithread
     """
     returns a tuple of all the files that are duplicated between path1 and path2,
     as a tuple of the full path of the first instance, and the full path of the second instance.
@@ -284,93 +284,50 @@ def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool 
     return sha256.hexdigest()
 
 
-def get_size_of_folder(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int: # FIXME will be replaced/updated when I implement getting os.stat of all files in advance
+def get_size_of_files(filepaths: tuple[str]) -> int: # FIXME will be replaced/updated when I implement getting os.stat of all files in advance
     """
-    gets the sum of all file sizes in path and all subfolders, that match file_extensions and start_with
-    set print_stats_every_x_seconds to -1 to never print
-    if file_extensions is an empty tuple, will not check file extensions,
-    if start_with is an empty tuple, will not check what a filename starts with.
-    if they are set, only files that match all of those conditions will be counted
-    file_extensions is just an endswith check, so I reccomend including the period
-
-    original singlethreaded version (faster in my testing)
+    gets the sum of all file sizes
     """
-    assert (os.path.exists(path)), "path does not exist"
-    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
-    assert (isinstance(start_with, tuple)), "start_with was not a tuple"
-
-    if len(file_extensions) == 0:
-        file_extensions = "" # all strings end with ""
-
-    if len(start_with) == 0:
-        start_with = "" # all strings start with ""
+    assert (isinstance(filepaths, tuple))
 
     total_size = 0
-    for parent_path, _, files in os.walk(os.path.abspath(path)):
-        files: list[str]
-        for file in files:
-            if file.endswith(file_extensions) and file.startswith(start_with):
-                try:
-                    total_size += os.stat(os.path.abspath(parent_path+"/"+file))[6] # bytes filesize
-                except OSError:
-                    pass
+    for filepath in filepaths:
+        assert (isinstance(filepath, str))
+        try:
+            total_size += os.stat(filepath).st_size # bytes filesize
+        except OSError: # tried to access a restricted file
+            pass
 
     return total_size
 
 
-def get_size_of_folder_multithreaded(path, file_extensions: tuple[str] = (), start_with: tuple[str] = ()) -> int:
+def get_size_of_files_multithreaded(filepaths: tuple[str], files_per_group: int = 1000) -> int:
     """
-    gets the sum of all file sizes in path and all subfolders, that match file_extensions and start_with
-    set print_stats_every_x_seconds to -1 to never print
-    if file_extensions is an empty tuple, will not check file extensions,
-    if start_with is an empty tuple, will not check what a filename starts with.
-    if they are set, only files that match all of those conditions will be counted
-    file_extensions is just an endswith check, so I reccomend including the period
+    gets the sum of all file sizes
 
-    in my testing this has actually been significantly slower than the singlethreaded version
+    seems about the same speed as the singlethreaded version
     """
-    assert (os.path.exists(path)), "path does not exist"
-    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
-    assert (isinstance(start_with, tuple)), "start_with was not a tuple"
+    assert (isinstance(filepaths, tuple))
 
-    if len(file_extensions) == 0:
-        file_extensions = "" # all strings end with ""
-
-    if len(start_with) == 0:
-        start_with = "" # all strings start with ""
+    grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
 
     total_size = 0
     with ThreadPoolExecutor() as executor:
-        for parent_path, _, files in os.walk(os.path.abspath(path)):
-            new_folder_size = executor.submit(__get_size_of_folder_unit_processor, files, parent_path, start_with, file_extensions)
+        for filepaths in grouped_filepaths:
+            new_folder_size = executor.submit(get_size_of_files, filepaths)
             total_size += new_folder_size.result()
 
     return total_size
 
 
-def __get_size_of_folder_unit_processor(files: list[str], parent_path: str, start_with: tuple[str], end_with: tuple[str]) -> int:
-    """
-    returns the total size of the given files
-    do not use on its own
-    """
-    total_size = 0
-
-    for file in files:
-        if file.endswith(end_with) and file.startswith(start_with):
-            try:
-                total_size += os.stat(os.path.abspath(parent_path+"/"+file))[6] # bytes filesize
-            except OSError: # tried to access a restricted file
-                pass
-
-    return total_size
-
-
 if __name__ == "__main__":
-    files = get_all_files_in_folder("C:/")
+    files = get_all_files_in_folder("C:/Users/onebi/Documents")
     start_time = time()
     print(len(files))
-    file_extensions = get_file_extensions(files)
-    print(len(file_extensions))
+    size_of_folder = get_size_of_files_multithreaded(files)
+    print(size_of_folder)
+    #file_extensions = get_file_extensions(files)
+    #print(len(file_extensions))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
