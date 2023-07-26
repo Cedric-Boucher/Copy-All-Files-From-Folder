@@ -42,6 +42,8 @@ def get_file_extensions(filepaths: tuple[str]) -> tuple[str]:
 def get_file_extensions_multithreaded(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]:
     """
     same as above but multithreaded
+
+    doesn't seem to be any faster than singlethreaded version for some reason
     """
     assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
 
