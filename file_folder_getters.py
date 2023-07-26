@@ -342,7 +342,7 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
     return total_size
 
 
-if __name__ == "__main__":
+def main():
     files = get_all_files_in_folder("C:/")
     start_time = time()
     print(len(files))
@@ -385,3 +385,6 @@ if __name__ == "__main__":
                 pass
     """
     print("{} seconds".format(time() - start_time))
+
+if __name__ == "__main__":
+    main()
