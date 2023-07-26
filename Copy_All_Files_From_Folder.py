@@ -114,7 +114,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     number_of_files_processed = 0
     error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
 
-    total_size = get_size_of_folder(os.path.abspath(input_folder), file_extensions=file_extensions, start_with=start_with) # FIXME will need to be replaced later
+    total_size = get_size_of_files(input_files) # FIXME will need to be replaced later
     total_processed_size = 0
 
     if move_mode == "C":
