@@ -157,7 +157,7 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
 
     threads = list()
 
-    with ProcessPoolExecutor() as executor:
+    with ThreadPoolExecutor() as executor:
         for filepaths in grouped_filepaths:
             thread = executor.submit(limit_files_by_size_singlethreaded, filepaths)
             threads.append(thread)
@@ -312,7 +312,7 @@ def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool 
     return sha256.hexdigest()
 
 
-def get_size_of_files(filepaths: tuple[str]) -> int: # FIXME will be replaced/updated when I implement getting os.stat of all files in advance
+def get_size_of_files_singlethreaded(filepaths: tuple[str]) -> int: # FIXME will be replaced/updated when I implement getting os.stat of all files in advance
     """
     gets the sum of all file sizes
     """
@@ -329,7 +329,7 @@ def get_size_of_files(filepaths: tuple[str]) -> int: # FIXME will be replaced/up
     return total_size
 
 
-def get_size_of_files_multithreaded(filepaths: tuple[str], files_per_group: int = 1000) -> int:
+def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
     """
     gets the sum of all file sizes
 
@@ -339,25 +339,28 @@ def get_size_of_files_multithreaded(filepaths: tuple[str], files_per_group: int 
 
     grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
 
+    threads = list()
     total_size = 0
     with ThreadPoolExecutor() as executor:
         for filepaths in grouped_filepaths:
-            new_folder_size = executor.submit(get_size_of_files, filepaths)
-            total_size += new_folder_size.result()
+            thread = executor.submit(get_size_of_files_singlethreaded, filepaths)
+            threads.append(thread)
+        wait(threads)
+        total_size += sum(thread.result() for thread in threads)
 
     return total_size
 
 
 if __name__ == "__main__":
-    files = get_all_files_in_folder("C:/Users/onebi/Documents")
+    files = get_all_files_in_folder("C:/")
     start_time = time()
     print(len(files))
     #size_of_folder = get_size_of_files_multithreaded(files)
     #print(size_of_folder)
-    #file_extensions = get_file_extensions(files)
-    #print(len(file_extensions))
-    limited_files = limit_files_by_size_multithreaded(files)
-    print(len(limited_files))
+    file_extensions = get_file_extensions(files)
+    print(len(file_extensions))
+    #limited_files = limit_files_by_size(files)
+    #print(len(limited_files))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
