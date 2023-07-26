@@ -188,38 +188,25 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
 
     print("counting files in folders...")
 
-    files_in_path1 = len(filepaths1)
+    files_in_paths = len(filepaths1)
+    filepathss = (filepaths1,)
     if not paths_are_identical:
-        files_in_path2 = len(filepaths2)
+        files_in_paths += len(filepaths2)
+        filepathss = (filepaths1, filepaths2)
 
     print("getting filesizes and hashes...")
 
     progress = progress_bar(100, rate_units="files")
     file_counter = 0
-
-    for filepath in filepaths1:
-        file_counter += 1
-        try: # faster than checking if file exists
-            file_size = os.stat(filepath).st_size
-        except:
-            continue # skipe filepath
-        if file_size == 0:
-            continue # all files of 0 bytes would match, which is very slow and unnecessary
-        file_hash = get_hash(filepath, buffer_chunk_size=1048576, only_read_one_chunk=True)
-        try:
-            file_paths_by_size[file_size][0].append((filepath, file_hash))
-        except KeyError: # can't append if the list hadn't been created
-            file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
-        progress.print_progress_bar(file_counter / files_in_path1, file_counter)
-
-    print("") # to add a newline after the end of the progress bar
-
-    if not paths_are_identical:
-        progress = progress_bar(100, rate_units="files")
-        file_counter = 0
-        for filepath in filepaths2:
+    first_filepaths = True
+    for filepaths in filepathss:
+        if first_filepaths:
+            index = 0
+        else:
+            index = 1
+        for filepath in filepaths:
             file_counter += 1
-            try:
+            try: # faster than checking if file exists
                 file_size = os.stat(filepath).st_size
             except:
                 continue # skipe filepath
@@ -227,10 +214,14 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
                 continue # all files of 0 bytes would match, which is very slow and unnecessary
             file_hash = get_hash(filepath, buffer_chunk_size=1048576, only_read_one_chunk=True)
             try:
-                file_paths_by_size[file_size][1].append((filepath, file_hash))
+                file_paths_by_size[file_size][index].append((filepath, file_hash))
             except KeyError: # can't append if the list hadn't been created
-                file_paths_by_size[file_size] = (list(), [(filepath, file_hash)])
-            progress.print_progress_bar(file_counter / files_in_path2, file_counter)
+                if first_filepaths:
+                    file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
+                else:
+                    file_paths_by_size[file_size] = (list(), [(filepath, file_hash)])
+            progress.print_progress_bar(file_counter / files_in_paths, file_counter)
+        first_filepaths = False
 
     print("") # to add a newline after the end of the progress bar
 
@@ -357,10 +348,10 @@ if __name__ == "__main__":
     print(len(files))
     #size_of_folder = get_size_of_files_multithreaded(files)
     #print(size_of_folder)
-    file_extensions = get_file_extensions(files)
-    print(len(file_extensions))
-    #limited_files = limit_files_by_size(files)
-    #print(len(limited_files))
+    #file_extensions = get_file_extensions(files)
+    #print(len(file_extensions))
+    limited_files = limit_files_by_size(files)
+    print(len(limited_files))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
