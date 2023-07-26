@@ -53,7 +53,7 @@ def get_file_extensions(filepaths: tuple[str], files_per_group: int = 100000) ->
 
     with ProcessPoolExecutor() as executor:
         for filepaths in grouped_filepaths:
-            thread = executor.submit(get_file_extensions, filepaths)
+            thread = executor.submit(get_file_extensions_singlethreaded, filepaths)
             threads.append(thread)
         wait(threads)
         [file_extensions.update(set(thread.result())) for thread in threads]
@@ -118,7 +118,7 @@ def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bo
     return tuple(files_sizes_pairs)
 
 
-def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**64) -> tuple[str]:
+def limit_files_by_size_singlethreaded(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**64) -> tuple[str]:
     """
     limits files to only keep files between min_size and max_size
     min and maxes are inclusive
@@ -137,6 +137,32 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
             continue # skip filepath
         if file_size >= min_size and file_size <= max_size:
             new_filepaths.append(filepath)
+
+    return tuple(new_filepaths)
+
+
+def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**64, files_per_group: int = 100) -> tuple[str]:
+    """
+    limits files to only keep files between min_size and max_size
+    min and maxes are inclusive
+    """
+    assert (isinstance(filepaths, tuple)), "path does not exist"
+    assert (isinstance(min_size, int)), "min_size was not an int"
+    assert (isinstance(max_size, int)), "max_size was not an int"
+    assert (max_size >= min_size), "max_size must be greater than min_size"
+
+    new_filepaths: list[str] = list()
+
+    grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+
+    threads = list()
+
+    with ProcessPoolExecutor() as executor:
+        for filepaths in grouped_filepaths:
+            thread = executor.submit(limit_files_by_size_singlethreaded, filepaths)
+            threads.append(thread)
+        wait(threads)
+        [new_filepaths.extend(thread.result()) for thread in threads]
 
     return tuple(new_filepaths)
 
@@ -323,13 +349,15 @@ def get_size_of_files_multithreaded(filepaths: tuple[str], files_per_group: int 
 
 
 if __name__ == "__main__":
-    files = get_all_files_in_folder("C:/")
+    files = get_all_files_in_folder("C:/Users/onebi/Documents")
     start_time = time()
     print(len(files))
     #size_of_folder = get_size_of_files_multithreaded(files)
     #print(size_of_folder)
-    file_extensions = get_file_extensions_multithreaded(files)
-    print(len(file_extensions))
+    #file_extensions = get_file_extensions(files)
+    #print(len(file_extensions))
+    limited_files = limit_files_by_size_multithreaded(files)
+    print(len(limited_files))
     """
     print(len(files))
     print("got files in {} seconds".format(time() - start_time))
