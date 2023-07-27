@@ -47,7 +47,7 @@ def get_file_extensions(filepaths: tuple[str], files_per_group: int = 100000) ->
 
     file_extensions = set()
 
-    grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+    grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
 
     threads = list()
 
@@ -153,13 +153,13 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
 
     new_filepaths: list[str] = list()
 
-    grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+    grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
 
     threads = list()
 
     with ThreadPoolExecutor() as executor:
         for filepaths in grouped_filepaths:
-            thread = executor.submit(limit_files_by_size_singlethreaded, filepaths)
+            thread = executor.submit(limit_files_by_size_singlethreaded, filepaths, min_size, max_size)
             threads.append(thread)
         wait(threads)
         [new_filepaths.extend(thread.result()) for thread in threads]
@@ -167,7 +167,7 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
     return tuple(new_filepaths)
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple[tuple[str, str]]: # TODO multithread
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[str, str]]: # TODO multithread
     """
     returns a tuple of all the files that are duplicated between path1 and path2,
     as a tuple of the full path of the first instance, and the full path of the second instance.
@@ -189,43 +189,77 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
     print("counting files in folders...")
 
     files_in_paths = len(filepaths1)
+    files_in_first_paths = files_in_paths
     filepathss = (filepaths1,)
     if not paths_are_identical:
         files_in_paths += len(filepaths2)
         filepathss = (filepaths1, filepaths2)
 
     print("getting filesizes and hashes...")
+    print("creating threads...")
 
-    progress = progress_bar(100, rate_units="files")
+    progress = progress_bar(100, rate_units="threads")
+    thread_counter = 0
     file_counter = 0
+    size_threads = list()
+    hash_threads = list()
+    ordered_filepaths = list()
+
+    with ProcessPoolExecutor() as executor:
+        for filepaths in filepathss:
+            grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+            for filepaths_group in grouped_filepaths:
+                thread_counter += 1
+                file_counter += len(filepaths_group)
+                thread = executor.submit(__get_multiple_file_sizes, filepaths)
+                size_threads.append(thread)
+                thread = executor.submit(__get_multiple_file_hashes, filepaths_group, buffer_chunk_size=1048576, only_read_one_chunk=True)
+                hash_threads.append(thread)
+                ordered_filepaths.extend(filepaths_group)
+                progress.print_progress_bar(file_counter / files_in_paths, thread_counter)
+
+        print("") # to add a newline afer the end of the progress bar
+
+        print("waiting for threads to return...")
+
+        wait(size_threads)
+        wait(hash_threads)
+
+        print("processing filesizes and hashes...")
+
+        file_size_groups: list[tuple[int]] = [thread.result() for thread in size_threads]
+        file_hash_groups: list[tuple[str]] = [thread.result() for thread in hash_threads]
+
+    file_sizes: list[int] = list()
+    [file_sizes.extend(file_size_group) for file_size_group in file_size_groups]
+    file_hashes: list[str] = list()
+    [file_hashes.extend(file_hash_group) for file_hash_group in file_hash_groups]
+    progress = progress_bar(100, rate_units="files")
     first_filepaths = True
-    for filepaths in filepathss:
+    i = -1
+
+    for filepath in ordered_filepaths:
+        i += 1
+        if first_filepaths and i >= files_in_first_paths:
+            first_filepaths = False
         if first_filepaths:
             index = 0
         else:
             index = 1
-        for filepath in filepaths:
-            file_counter += 1
-            try: # faster than checking if file exists
-                file_size = os.stat(filepath).st_size
-            except:
-                continue # skipe filepath
-            if file_size == 0:
-                continue # all files of 0 bytes would match, which is very slow and unnecessary
-            file_hash = get_hash(filepath, buffer_chunk_size=1048576, only_read_one_chunk=True)
-            try:
-                file_paths_by_size[file_size][index].append((filepath, file_hash))
-            except KeyError: # can't append if the list hadn't been created
-                if first_filepaths:
-                    file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
-                else:
-                    file_paths_by_size[file_size] = (list(), [(filepath, file_hash)])
-            progress.print_progress_bar(file_counter / files_in_paths, file_counter)
-        first_filepaths = False
+        file_size = file_sizes[i]
+        if file_size == 0:
+            continue # all files with 0 size would match which is unnecessarily slow
+        file_hash = file_hashes[i]
+        try:
+            file_paths_by_size[file_size][index].append((filepath, file_hash))
+        except KeyError: # can't append if the list hadn't been created
+            if first_filepaths:
+                file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
+            else:
+                file_paths_by_size[file_size] = (list(), [(filepath, file_hash)])
+        progress.print_progress_bar(i / files_in_paths, i)
 
     print("") # to add a newline after the end of the progress bar
-
-    progress = progress_bar(100, rate_units="file-comparisons")
 
     total_comparisons = 0
     if paths_are_identical:
@@ -238,6 +272,8 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
     current_comparison = 0
 
     print("finding duplicates...")
+
+    progress = progress_bar(100, rate_units="file-comparisons")
 
     for key in file_paths_by_size.keys():
         if paths_are_identical:
@@ -275,6 +311,38 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str]) -> tuple
     print("") # to add a newline after the end of the progress bar
 
     return tuple(duplicate_files)
+
+
+def __get_multiple_file_hashes(filepaths: tuple[str], buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = True) -> tuple[str]:
+    """
+    calls get_hash for each filepath in filepaths, returns the tuple of the results
+    """
+    file_hashes = list()
+
+    for filepath in filepaths:
+        try:
+            file_hash = get_hash(filepath, buffer_chunk_size, only_read_one_chunk)
+        except: # couldn't get the file hash for some reason
+            file_hash = ""
+        file_hashes.append(file_hash)
+
+    return tuple(file_hashes)        
+
+
+def __get_multiple_file_sizes(filepaths: tuple[str]) -> tuple[int]:
+    """
+    gets the size of each file in filepaths
+    """
+    file_sizes = list()
+
+    for filepath in filepaths:
+        try:
+            file_size = os.stat(filepath).st_size
+        except:
+            file_size = 0 # couldn't get filesize for some reason
+        file_sizes.append(file_size)
+
+    return tuple(file_sizes)
 
 
 def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = False) -> str:
@@ -328,7 +396,7 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
     """
     assert (isinstance(filepaths, tuple))
 
-    grouped_filepaths = [filepaths[i:i+files_per_group] if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+    grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
 
     threads = list()
     total_size = 0
@@ -344,37 +412,22 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 def main():
     files = get_all_files_in_folder("C:/")
-    start_time = time()
     print(len(files))
-    #size_of_folder = get_size_of_files_multithreaded(files)
+    files = limit_files_by_size(files, 1024*1024)
+    print(len(files))
+    size = get_size_of_files(files)
+    print(size)
+    start_time = time()
+    #size_of_folder = get_size_of_files(files)
     #print(size_of_folder)
     #file_extensions = get_file_extensions(files)
     #print(len(file_extensions))
-    limited_files = limit_files_by_size(files)
-    print(len(limited_files))
-    """
-    print(len(files))
-    print("got files in {} seconds".format(time() - start_time))
-    new_time = time()
-    files = limit_files_by_file_extension(files, (".txt",))
-    print(len(files))
-    print(files[:20])
-    print("limited by file extension in {} seconds".format(time() - new_time))
-    new_time = time()
-    files = limit_files_by_size(files, 1024**2, is_max=False)
-    print(len(files))
-    print(files[:20])
-    print("limited by filesize in {} seconds".format(time() - new_time))
-    new_time = time()
-    files = limit_files_by_file_start(files, ("a",))
-    print(len(files))
-    print(files)
-    print("limited by file start in {} seconds".format(time() - new_time))
-    """
+    #limited_files = limit_files_by_size(files)
+    #print(len(limited_files))
 
-    """
+
     duplicates = get_duplicate_files(files, files)
-
+    
     import csv
     with open("duplicate_files.csv", "w", newline="") as file:
         csv_writer = csv.writer(file)
@@ -383,7 +436,7 @@ def main():
                 csv_writer.writerow(duplicate_pair)
             except UnicodeEncodeError:
                 pass
-    """
+    
     print("{} seconds".format(time() - start_time))
 
 if __name__ == "__main__":
