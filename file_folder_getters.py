@@ -167,11 +167,13 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
     return tuple(new_filepaths)
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[str]]:
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str]]]:
     """
-    returns a tuple of all the files that are duplicated between path1 and path2,
-    as a tuple of tuples of the filepaths of all matches.
-    for example: ( (match1, match1, match1), (match2, match2) )
+    returns all the files that are duplicated between path1 and path2,
+    as a tuple (each unique file/match)
+    of tuples (path1 on the left, path2 on the right)
+    of tuples (each file in that path that matches with the others) 
+    of strings (the filepaths)
 
     if path1 and path2 are the same, will ignore case when filenames match, of course.
 
@@ -417,65 +419,17 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     print("{} duplicate files".format(files_to_process))
 
-    print(filepaths_grouped_by_size_hash2)
-    return
+    duplicate_file_matches: list[tuple[tuple[str], tuple[str]]] = list()
 
-
-
-
-
-
-
-    total_comparisons = 0
-    if paths_are_identical:
-        for key in filepaths_grouped_by_size.keys():
-            total_comparisons += len(filepaths_grouped_by_size_hash1[key][0]) ** 2
-    else:
-        for key in filepaths_grouped_by_size.keys():
-            total_comparisons += len(filepaths_grouped_by_size_hash1[key][0]) * len(filepaths_grouped_by_size_hash1[key][1])
-
-    current_comparison = 0
-
-    print("finding duplicates...")
-
-    progress = progress_bar(100, rate_units="file-comparisons")
-
-    for key in filepaths_grouped_by_size.keys():
+    for filehash2 in filepaths_grouped_by_size_hash2.keys():
+        path1_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][0])
         if paths_are_identical:
-            # then duplicates are only in the first element of the tuple
-            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (filepaths_grouped_by_size[key][0], filepaths_grouped_by_size[key][0])
+            duplicate_file_matches.append((path1_match_files, path1_match_files))
         else:
-            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (filepaths_grouped_by_size[key][0], filepaths_grouped_by_size[key][1])
-        for file_hash_pair1 in potential_duplicates[0]:
-            file1 = file_hash_pair1[0]
-            hash1 = file_hash_pair1[1]
-            file1_extension = file1.split(".")[-1]
-            files_to_compare = [file_hash_pair2[0] for file_hash_pair2 in potential_duplicates[1]
-                                    if (file_hash_pair2[0].split(".")[-1] == file1_extension
-                                        and file1 != file_hash_pair2[0]
-                                        and hash1 == file_hash_pair2[1])]
-            current_comparison += len(files_to_compare)
-            total_comparisons -= (len(potential_duplicates[1]) - len(files_to_compare)) # number of files easily skipped
-            total_comparisons = max(total_comparisons, 0) # in case somehow it goes below 0
-            # only compare files byte-by-byte if they have the same filetype, aren't the same path, and have the same hash
-            for file2 in files_to_compare:
-                pair_already_in_duplicate_files = (duplicate_files.issuperset((file1, file2)) or duplicate_files.issuperset((file2, file1)))
-                if pair_already_in_duplicate_files:
-                    continue # skip, as we have already found this duplicate
-                try:
-                    files_are_identical = compare_files(file1, file2, shallow=False)
-                except:
-                    files_are_identical = False
-                # verify that files are actually identical all the way through, byte for byte, since
-                # the hash only read the first little bit of each file
-                if files_are_identical:
-                    duplicate_files.add((file1, file2))
+            path2_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][1])
+            duplicate_file_matches.append((path1_match_files, path2_match_files))
 
-            progress.print_progress_bar(current_comparison/total_comparisons, current_comparison)
-
-    print("") # to add a newline after the end of the progress bar
-
-    return tuple(duplicate_files)
+    return tuple(duplicate_file_matches)
 
 
 def __get_multiple_file_hashes(filepaths: tuple[str], buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = True) -> tuple[str]:
