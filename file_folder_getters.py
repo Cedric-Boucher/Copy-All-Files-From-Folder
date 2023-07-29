@@ -167,10 +167,11 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
     return tuple(new_filepaths)
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[str, str]]: # TODO multithread
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[str]]:
     """
     returns a tuple of all the files that are duplicated between path1 and path2,
-    as a tuple of the full path of the first instance, and the full path of the second instance.
+    as a tuple of tuples of the filepaths of all matches.
+    for example: ( (match1, match1, match1), (match2, match2) )
 
     if path1 and path2 are the same, will ignore case when filenames match, of course.
 
@@ -179,30 +180,36 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
     assert (isinstance(filepaths1, tuple)), "path1 does not exist"
     assert (isinstance(filepaths2, tuple)), "path2 does not exist"
 
-    paths_are_identical = (set(filepaths1) == set(filepaths2))
+    filepaths1_set = set(filepaths1)
+    filepaths2_set = set(filepaths2)
+    paths_are_identical = (filepaths1_set == filepaths2_set)
     duplicate_files: set[tuple[str, str]] = set()
-    file_paths_by_size: dict[int, tuple[list[tuple[str, str]]]] = dict()
+    filepaths_grouped_by_size: dict[int, tuple[list[str]]] = dict()
+    filepath_sizes: dict[str, int] = dict() # a way to quickly get filesize of any file once we have found them all
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
     # inside that tuple is a list of tuples containing
     # the full filepaths of any files of this size, and their sha256 hashes
+    filepaths_grouped_by_size_hash1: dict[tuple[int, str], tuple[list[str]]] = dict() # group by size and hash of first chunk of each file
+    filepath_hash1s: dict[str, str] = dict() # a way to quickly get the first chunk hash of any file once we have found them all
+    filepaths_grouped_by_size_hash2: dict[tuple[int, str, str], tuple[list[str]]] = dict() # group by size and hash of first chunk and hash of entire file
 
     print("counting files in folders...")
 
-    files_in_paths = len(filepaths1)
-    files_in_first_paths = files_in_paths
+    files_to_process = len(filepaths1)
     filepathss = (filepaths1,)
     if not paths_are_identical:
-        files_in_paths += len(filepaths2)
+        files_to_process += len(filepaths2)
         filepathss = (filepaths1, filepaths2)
 
-    print("getting filesizes and hashes...")
+    print("{} files to process".format(files_to_process))
+    #####################################################################################################################
+    print("getting filesizes...")
     print("creating threads...")
 
     progress = progress_bar(100, rate_units="threads")
     thread_counter = 0
     file_counter = 0
     size_threads = list()
-    hash_threads = list()
     ordered_filepaths = list()
 
     with ProcessPoolExecutor() as executor:
@@ -213,61 +220,219 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 file_counter += len(filepaths_group)
                 thread = executor.submit(__get_multiple_file_sizes, filepaths)
                 size_threads.append(thread)
-                thread = executor.submit(__get_multiple_file_hashes, filepaths_group, buffer_chunk_size=1048576, only_read_one_chunk=True)
-                hash_threads.append(thread)
                 ordered_filepaths.extend(filepaths_group)
-                progress.print_progress_bar(file_counter / files_in_paths, thread_counter)
+                progress.print_progress_bar(file_counter / files_to_process, thread_counter)
 
         print("") # to add a newline afer the end of the progress bar
 
         print("waiting for threads to return...")
 
         wait(size_threads)
-        wait(hash_threads)
 
-        print("processing filesizes and hashes...")
+        print("processing filesizes...")
 
         file_size_groups: list[tuple[int]] = [thread.result() for thread in size_threads]
-        file_hash_groups: list[tuple[str]] = [thread.result() for thread in hash_threads]
 
-    file_sizes: list[int] = list()
-    [file_sizes.extend(file_size_group) for file_size_group in file_size_groups]
-    file_hashes: list[str] = list()
-    [file_hashes.extend(file_hash_group) for file_hash_group in file_hash_groups]
+    ordered_file_sizes: list[int] = list()
+    [ordered_file_sizes.extend(file_size_group) for file_size_group in file_size_groups]
     progress = progress_bar(100, rate_units="files")
-    first_filepaths = True
     i = -1
 
     for filepath in ordered_filepaths:
         i += 1
-        if first_filepaths and i >= files_in_first_paths:
-            first_filepaths = False
+        first_filepaths = (filepath in filepaths1_set)
         if first_filepaths:
             index = 0
         else:
             index = 1
-        file_size = file_sizes[i]
+        file_size = ordered_file_sizes[i]
+        filepath_sizes[filepath] = file_size
         if file_size == 0:
             continue # all files with 0 size would match which is unnecessarily slow
-        file_hash = file_hashes[i]
         try:
-            file_paths_by_size[file_size][index].append((filepath, file_hash))
+            filepaths_grouped_by_size[file_size][index].append(filepath)
         except KeyError: # can't append if the list hadn't been created
             if first_filepaths:
-                file_paths_by_size[file_size] = ([(filepath, file_hash)], list())
+                filepaths_grouped_by_size[file_size] = ([filepath], list())
             else:
-                file_paths_by_size[file_size] = (list(), [(filepath, file_hash)])
-        progress.print_progress_bar(i / files_in_paths, i)
+                filepaths_grouped_by_size[file_size] = (list(), [filepath])
+        progress.print_progress_bar((i+1) / files_to_process, i+1)
 
     print("") # to add a newline after the end of the progress bar
 
+    print("counting size matches...")
+
+    size_match_filepathss: tuple[list[str]] = (list(), list()) # same format as filepathss
+
+    for filesize in filepaths_grouped_by_size.keys():
+        if ((not paths_are_identical and (len(filepaths_grouped_by_size[filesize][0]) > 0 and len(filepaths_grouped_by_size[filesize][1]) > 0)) or
+           (paths_are_identical and len(filepaths_grouped_by_size[filesize][0]) > 1)):
+            # then there are potential matches
+            size_match_filepathss[0].extend(filepaths_grouped_by_size[filesize][0])
+            size_match_filepathss[1].extend(filepaths_grouped_by_size[filesize][1])
+    
+    files_to_process = len(size_match_filepathss[0]) + len(size_match_filepathss[1])
+
+    print("{} files remaining to process".format(files_to_process))
+    #####################################################################################################################
+    print("getting first MB hashes...")
+    print("creating threads...")
+
+    progress = progress_bar(100, rate_units="threads")
+    thread_counter = 0
+    file_counter = 0
+    hash_threads = list()
+    ordered_filepaths = list()
+
+    with ProcessPoolExecutor() as executor:
+        for filepaths in size_match_filepathss: # only get hashes of potential matches
+            grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+            for filepaths_group in grouped_filepaths:
+                thread_counter += 1
+                file_counter += len(filepaths_group)
+                thread = executor.submit(__get_multiple_file_hashes, filepaths_group, buffer_chunk_size=1048576, only_read_one_chunk=True)
+                hash_threads.append(thread)
+                ordered_filepaths.extend(filepaths_group)
+                progress.print_progress_bar(file_counter / files_to_process, thread_counter)
+
+        print("") # to add a newline afer the end of the progress bar
+
+        print("waiting for threads to return...")
+
+        wait(hash_threads)
+
+        print("processing hashes...")
+
+        file_hash_groups: list[tuple[str]] = [thread.result() for thread in hash_threads]
+
+    file_hashes: list[str] = list()
+    [file_hashes.extend(file_hash_group) for file_hash_group in file_hash_groups]
+    progress = progress_bar(100, rate_units="files")
+    i = -1
+
+    for filepath in ordered_filepaths:
+        i += 1
+        first_filepaths = (filepath in filepaths1_set)
+        if first_filepaths:
+            index = 0
+        else:
+            index = 1
+        file_size = filepath_sizes[filepath]
+        file_hash = file_hashes[i]
+        filepath_hash1s[filepath] = file_hash
+        try:
+            filepaths_grouped_by_size_hash1[(file_size, file_hash)][index].append(filepath)
+        except KeyError: # can't append if the list hadn't been created
+            if first_filepaths:
+                filepaths_grouped_by_size_hash1[(file_size, file_hash)] = ([filepath], list())
+            else:
+                filepaths_grouped_by_size_hash1[(file_size, file_hash)] = (list(), [filepath])
+        progress.print_progress_bar((i+1) / files_to_process, i+1)
+
+    print("") # to add a newline after the end of the progress bar
+
+    print("counting first MB hash matches...")
+
+    hash1_match_filepathss: tuple[list[str]] = (list(), list()) # same format as filepathss
+
+    for filehash1 in filepaths_grouped_by_size_hash1.keys():
+        if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash1[filehash1][0]) > 0 and len(filepaths_grouped_by_size_hash1[filehash1][1]) > 0)) or
+           (paths_are_identical and len(filepaths_grouped_by_size_hash1[filehash1][0]) > 1)):
+            # then there are potential matches
+            hash1_match_filepathss[0].extend(filepaths_grouped_by_size_hash1[filehash1][0])
+            hash1_match_filepathss[1].extend(filepaths_grouped_by_size_hash1[filehash1][1])
+    
+    files_to_process = len(hash1_match_filepathss[0]) + len(hash1_match_filepathss[1])
+
+    print("{} files remaining to process".format(files_to_process))
+    #####################################################################################################################
+    print("getting whole file hashes...")
+    print("creating threads...")
+
+    progress = progress_bar(100, rate_units="threads")
+    thread_counter = 0
+    file_counter = 0
+    hash_threads = list()
+    ordered_filepaths = list()
+
+    with ProcessPoolExecutor() as executor:
+        for filepaths in hash1_match_filepathss: # only get hashes of potential matches
+            grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
+            for filepaths_group in grouped_filepaths:
+                thread_counter += 1
+                file_counter += len(filepaths_group)
+                thread = executor.submit(__get_multiple_file_hashes, filepaths_group, buffer_chunk_size=1048576, only_read_one_chunk=False)
+                hash_threads.append(thread)
+                ordered_filepaths.extend(filepaths_group)
+                progress.print_progress_bar(file_counter / files_to_process, thread_counter)
+
+        print("") # to add a newline afer the end of the progress bar
+
+        print("waiting for threads to return...")
+
+        wait(hash_threads)
+
+        print("processing hashes...")
+
+        file_hash_groups: list[tuple[str]] = [thread.result() for thread in hash_threads]
+
+    file_hashes: list[str] = list()
+    [file_hashes.extend(file_hash_group) for file_hash_group in file_hash_groups]
+    progress = progress_bar(100, rate_units="files")
+    i = -1
+
+    for filepath in ordered_filepaths:
+        i += 1
+        first_filepaths = (filepath in filepaths1_set)
+        if first_filepaths:
+            index = 0
+        else:
+            index = 1
+        file_size = filepath_sizes[filepath]
+        file_hash1 = filepath_hash1s[filepath]
+        file_hash2 = file_hashes[i]
+        try:
+            filepaths_grouped_by_size_hash2[(file_size, file_hash1, file_hash2)][index].append(filepath)
+        except KeyError: # can't append if the list hadn't been created
+            if first_filepaths:
+                filepaths_grouped_by_size_hash2[(file_size, file_hash1, file_hash2)] = ([filepath], list())
+            else:
+                filepaths_grouped_by_size_hash2[(file_size, file_hash1, file_hash2)] = (list(), [filepath])
+        progress.print_progress_bar((i+1) / files_to_process, i+1)
+
+    print("") # to add a newline after the end of the progress bar
+
+    print("counting hash matches (exact duplicates)...")
+
+    hash2_match_filepathss: tuple[list[str]] = (list(), list()) # same format as filepathss
+
+    for filehash2 in filepaths_grouped_by_size_hash2.keys():
+        if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash2[filehash2][0]) > 0 and len(filepaths_grouped_by_size_hash2[filehash2][1]) > 0)) or
+           (paths_are_identical and len(filepaths_grouped_by_size_hash2[filehash2][0]) > 1)):
+            # then there are potential matches
+            hash2_match_filepathss[0].extend(filepaths_grouped_by_size_hash2[filehash2][0])
+            hash2_match_filepathss[1].extend(filepaths_grouped_by_size_hash2[filehash2][1])
+    
+    files_to_process = len(hash2_match_filepathss[0]) + len(hash2_match_filepathss[1])
+
+    print("{} duplicate files".format(files_to_process))
+
+    print(filepaths_grouped_by_size_hash2)
+    return
+
+
+
+
+
+
+
     total_comparisons = 0
     if paths_are_identical:
-        for key in file_paths_by_size.keys():
-            total_comparisons += len(file_paths_by_size[key][0]) ** 2
+        for key in filepaths_grouped_by_size.keys():
+            total_comparisons += len(filepaths_grouped_by_size_hash1[key][0]) ** 2
     else:
-        for key in file_paths_by_size.keys():
-            total_comparisons += len(file_paths_by_size[key][0]) * len(file_paths_by_size[key][1])
+        for key in filepaths_grouped_by_size.keys():
+            total_comparisons += len(filepaths_grouped_by_size_hash1[key][0]) * len(filepaths_grouped_by_size_hash1[key][1])
 
     current_comparison = 0
 
@@ -275,12 +440,12 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     progress = progress_bar(100, rate_units="file-comparisons")
 
-    for key in file_paths_by_size.keys():
+    for key in filepaths_grouped_by_size.keys():
         if paths_are_identical:
             # then duplicates are only in the first element of the tuple
-            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (file_paths_by_size[key][0], file_paths_by_size[key][0])
+            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (filepaths_grouped_by_size[key][0], filepaths_grouped_by_size[key][0])
         else:
-            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (file_paths_by_size[key][0], file_paths_by_size[key][1])
+            potential_duplicates: tuple[list[tuple[str, str]], list[tuple[str, str]]] = (filepaths_grouped_by_size[key][0], filepaths_grouped_by_size[key][1])
         for file_hash_pair1 in potential_duplicates[0]:
             file1 = file_hash_pair1[0]
             hash1 = file_hash_pair1[1]
@@ -333,16 +498,16 @@ def __get_multiple_file_sizes(filepaths: tuple[str]) -> tuple[int]:
     """
     gets the size of each file in filepaths
     """
-    file_sizes = list()
+    ordered_file_sizes = list()
 
     for filepath in filepaths:
         try:
             file_size = os.stat(filepath).st_size
         except:
             file_size = 0 # couldn't get filesize for some reason
-        file_sizes.append(file_size)
+        ordered_file_sizes.append(file_size)
 
-    return tuple(file_sizes)
+    return tuple(ordered_file_sizes)
 
 
 def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = False) -> str:
