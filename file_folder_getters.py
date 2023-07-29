@@ -530,22 +530,15 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 
 def main():
-    files = get_all_files_in_folder("C:/")
-    print(len(files))
-    files = limit_files_by_size(files, 1024*1024)
-    print(len(files))
-    size = get_size_of_files(files)
-    print(size)
+    #files = get_all_files_in_folder("C:/")
+    #print("{} files".format(len(files)))
+    #files = limit_files_by_size(files, 1024*1024)
+    #print("{} files after limiting by size".format(len(files)))
+    #size = get_size_of_files(files)
+    #print("files are {} bytes total in size".format(size))
     start_time = time()
-    #size_of_folder = get_size_of_files(files)
-    #print(size_of_folder)
-    #file_extensions = get_file_extensions(files)
-    #print(len(file_extensions))
-    #limited_files = limit_files_by_size(files)
-    #print(len(limited_files))
 
-
-    duplicates = get_duplicate_files(files, files)
+    duplicates = get_duplicate_files(get_all_files_in_folder("K:/test1"), get_all_files_in_folder("K:/test2"))
     
     import csv
     with open("duplicate_files.csv", "w", newline="") as file:
