@@ -167,7 +167,7 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
     return tuple(new_filepaths)
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str]]]:
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str], tuple[str]]]:
     """
     returns all the files that are duplicated between path1 and path2,
     as a tuple (each unique file/match)
