@@ -276,6 +276,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 filepaths_grouped_by_size[file_size] = (list(), [filepath])
         if i % files_per_group == 0:
             progress.print_progress_bar((i+1) / files_to_process, i+1)
+    progress.print_progress_bar(1, i+1)
 
     print("") # to add a newline after the end of the progress bar
 
@@ -353,6 +354,8 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
         file_size = filepath_sizes[filepath]
         file_hash = file_hashes[i]
         filepath_hash1s[filepath] = file_hash
+        if file_hash == "":
+            continue # happens if there was an error in getting the hash
         try:
             filepaths_grouped_by_size_hash1[(file_size, file_hash)][index].append(filepath)
         except KeyError: # can't append if the list hadn't been created
@@ -362,6 +365,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 filepaths_grouped_by_size_hash1[(file_size, file_hash)] = (list(), [filepath])
         if i % files_per_group == 0:
             progress.print_progress_bar((i+1) / files_to_process, i+1)
+    progress.print_progress_bar(1, i+1)
 
     print("") # to add a newline after the end of the progress bar
 
@@ -439,6 +443,8 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
         file_size = filepath_sizes[filepath]
         file_hash1 = filepath_hash1s[filepath]
         file_hash2 = file_hashes[i]
+        if file_hash2 == "":
+            continue # happens if there was an error getting the hash
         try:
             filepaths_grouped_by_size_hash2[(file_size, file_hash1, file_hash2)][index].append(filepath)
         except KeyError: # can't append if the list hadn't been created
@@ -448,17 +454,18 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 filepaths_grouped_by_size_hash2[(file_size, file_hash1, file_hash2)] = (list(), [filepath])
         if i % files_per_group == 0:
             progress.print_progress_bar((i+1) / files_to_process, i+1)
+    progress.print_progress_bar(1, i+1)
 
     print("") # to add a newline after the end of the progress bar
 
     print("counting hash matches (exact duplicates)...")
 
-    hash2_match_filepathss: tuple[list[str]] = (list(), list()) # same format as filepathss
+    hash2_match_filepathss: tuple[list[str], list[str]] = (list(), list()) # same format as filepathss
 
     for filehash2 in filepaths_grouped_by_size_hash2.keys():
         if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash2[filehash2][0]) > 0 and len(filepaths_grouped_by_size_hash2[filehash2][1]) > 0)) or
            (paths_are_identical and len(filepaths_grouped_by_size_hash2[filehash2][0]) > 1)):
-            # then there are potential matches
+            # then there are matches
             hash2_match_filepathss[0].extend(filepaths_grouped_by_size_hash2[filehash2][0])
             hash2_match_filepathss[1].extend(filepaths_grouped_by_size_hash2[filehash2][1])
     
@@ -469,12 +476,15 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
     duplicate_file_matches: list[tuple[tuple[str], tuple[str]]] = list()
 
     for filehash2 in filepaths_grouped_by_size_hash2.keys():
-        path1_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][0])
-        if paths_are_identical:
-            duplicate_file_matches.append((path1_match_files, path1_match_files))
-        else:
-            path2_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][1])
-            duplicate_file_matches.append((path1_match_files, path2_match_files))
+        if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash2[filehash2][0]) > 0 and len(filepaths_grouped_by_size_hash2[filehash2][1]) > 0)) or
+           (paths_are_identical and len(filepaths_grouped_by_size_hash2[filehash2][0]) > 1)):
+            # then there are matches
+            path1_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][0])
+            if paths_are_identical:
+                duplicate_file_matches.append((path1_match_files, path1_match_files))
+            else:
+                path2_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][1])
+                duplicate_file_matches.append((path1_match_files, path2_match_files))
 
     return tuple(duplicate_file_matches)
 
@@ -577,13 +587,13 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 
 def main():
-    files = get_all_files_in_folder("C:/")
+    files = get_all_files_in_folder("C:/Users/onebi/Documents")
     print("{} files".format(len(files)))
     #files = limit_files_by_size(files, 1024*1024)
     #print("{} files after limiting by size".format(len(files)))
     size = get_size_of_files(files)
     print("files are {} bytes total in size".format(size))
-    files2 = get_all_files_in_folder("K:/")
+    files2 = get_all_files_in_folder("C:/Users/onebi/Documents")
     print("{} files".format(len(files2)))
     #files2 = limit_files_by_size(files2, 1024*1024)
     #print("{} files after limiting by size".format(len(files2)))
