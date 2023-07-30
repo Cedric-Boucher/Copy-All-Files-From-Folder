@@ -75,3 +75,15 @@ class progress_bar:
         self.__update_output_string(progress, rate_progress)
         print("\r" + self.__output_string, end="")
 
+    def get_ETA(self, progress: float) -> float:
+        """
+        returns ETA in seconds,
+        if with_ETA was False, returns 0
+
+        progress is [0, 1]
+        """
+        if self.__with_ETA:
+            return self.__ETA.get_time_remaining(progress)
+        else:
+            return 0
+
