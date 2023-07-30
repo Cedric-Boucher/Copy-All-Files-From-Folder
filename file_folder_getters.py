@@ -1,7 +1,6 @@
 from time import time, sleep
 import os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
-from filecmp import cmp as compare_files
 from progress_bar import progress_bar
 import hashlib
 
