@@ -52,7 +52,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     return output
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64, move_mode: str = "C", keep_folder_structure: bool = True) -> list[tuple]:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64, move_mode: str = "C", keep_folder_structure: bool = True, files_per_group: int = 100) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -128,14 +128,40 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     print("") # newline since first progress_bar() will \r
 
-    progress_bar_object = progress_bar(100, rate_units=rate_units) # created progress bar object
+    grouped_filepaths = [input_files[i:i+files_per_group] if i+files_per_group < len(input_files) else input_files[i:] for i in range(0, len(input_files), files_per_group)]
+
+    threads = list()
+
+    progress_bar_object = progress_bar(100, rate_units="Threads")
     progress = 0
 
+    print("creating threads...")
+    with ThreadPoolExecutor() as executor:
+        for filepaths in grouped_filepaths:
+            thread = executor.submit(__move_files_unit_processor, filepaths, input_folder, output_folder, move_mode, keep_folder_structure)
+            threads.append(thread)
 
-    with ThreadPoolExecutor() as executor: # FIXME slow right now, need to group files
-        for filepath in input_files:
-            unit_output = executor.submit(__move_files_unit_processor, (filepath,), input_folder, output_folder, move_mode, keep_folder_structure)
-            (new_error_counts, new_number_of_files_processed, number_of_failed_files, new_total_processed_size, failed_files_size) = unit_output.result()
+        print("waiting for threads to return...")
+        all_threads_done = False
+        last_done_count = 0
+        while not all_threads_done:
+            done_count = 0
+            for thread in threads:
+                done_count += thread.done()
+            all_threads_done = (done_count == len(threads))
+            if last_done_count != done_count:
+                last_done_count = done_count
+                progress_bar_object.print_progress_bar(done_count / len(threads), done_count)
+            else:
+                sleep(min((progress_bar_object.get_ETA(done_count / len(threads))/100, 1)))
+
+        print("") # to add a newline after the end of the progress bar
+
+        progress_bar_object = progress_bar(100, rate_units=rate_units)
+
+        print("processing outputs...")
+        for thread in threads:
+            (new_error_counts, new_number_of_files_processed, number_of_failed_files, new_total_processed_size, failed_files_size) = thread.result()
             number_of_files_total -= number_of_failed_files
             total_size -= failed_files_size
             for i in range(len(error_counts)):
@@ -158,6 +184,8 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
                 rate_progress = number_of_files_processed
 
             progress_bar_object.print_progress_bar(progress, rate_progress)
+    
+    print("") # to add a newline after the end of the progress bar
 
     # process error_counts to only return what errors did happen:
     error_return: list[tuple] = list()
@@ -185,7 +213,7 @@ def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_fold
         total_processed_size += current_filesize
 
         if keep_folder_structure and move_mode in ("C", "M"):
-            relative_output_path = os.path.split(filepath)[0].removeprefix(input_folder) # the subfolder structure inside of input_folder
+            relative_output_path = os.path.dirname(filepath).removeprefix(input_folder) # the subfolder structure inside of input_folder
             output_folder_path = os.path.abspath(output_folder + "/" + relative_output_path) # copy that subfolder structure to output
         else:
             output_folder_path = output_folder
@@ -336,8 +364,6 @@ def main() -> None:
     else:
         assert (move_mode in ("C", "M", "T", "D")), "operation type invalid or not given"
         assert (move_mode != "D" or permanent_delete_confirmed), "permanent deletion must be confirmed with --confirm_permanent_delete or -cpd"
-        if move_mode not in ("T", "D"):
-            assert (os.path.exists(output_folder)), "output folder does not exist"
         file_extensions = tuple(file_extensions)
         file_starts = tuple(file_starts)
 
