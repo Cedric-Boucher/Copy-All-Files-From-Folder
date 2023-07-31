@@ -20,6 +20,19 @@ def get_all_files_in_folder(path) -> tuple[str]:
     return tuple(files)
 
 
+def is_folder_empty(path) -> bool:
+    """
+    returns True if the folder has no files (it can have subfolders)
+    """
+    files = 0
+    for _, _, sub_files in os.walk(os.path.abspath(path)):
+        files += len(sub_files)
+        if files:
+            return False
+
+    return True
+
+
 def get_file_extensions_singlethreaded(filepaths: tuple[str]) -> tuple[str]:
     """
     returns a tuple of all unique file extensions in the filepaths given
@@ -586,28 +599,28 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 
 def main():
-    files = get_all_files_in_folder("C:/Users/onebi/Documents")
+    start_time = time()
+    files = get_all_files_in_folder("C:/")
     print("{} files".format(len(files)))
     #files = limit_files_by_size(files, 1024*1024)
     #print("{} files after limiting by size".format(len(files)))
-    size = get_size_of_files(files)
-    print("files are {} bytes total in size".format(size))
-    files2 = get_all_files_in_folder("C:/Users/onebi/Documents")
-    print("{} files".format(len(files2)))
+    #size = get_size_of_files(files)
+    #print("files are {} bytes total in size".format(size))
+    #files2 = get_all_files_in_folder("C:/Users/onebi/Documents")
+    #print("{} files".format(len(files2)))
     #files2 = limit_files_by_size(files2, 1024*1024)
     #print("{} files after limiting by size".format(len(files2)))
-    start_time = time()
 
-    duplicates = get_duplicate_files(files, files2)
+    #duplicates = get_duplicate_files(files, files2)
 
-    import csv
-    with open("duplicate_files.csv", "w", newline="") as file:
-        csv_writer = csv.writer(file)
-        for duplicate_pair in duplicates:
-            try:
-                csv_writer.writerow(duplicate_pair)
-            except UnicodeEncodeError:
-                pass
+    #import csv
+    #with open("duplicate_files.csv", "w", newline="") as file:
+    #    csv_writer = csv.writer(file)
+    #    for duplicate_pair in duplicates:
+    #        try:
+    #            csv_writer.writerow(duplicate_pair)
+    #        except UnicodeEncodeError:
+    #            pass
     
     print("{} seconds".format(time() - start_time))
 
