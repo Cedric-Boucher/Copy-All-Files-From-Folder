@@ -343,7 +343,10 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 last_done_count = done_count
                 progress2.print_progress_bar(done_count / len(hash_threads), done_count)
             else:
-                sleep(min((progress2.get_ETA(done_count / len(hash_threads))/100, 1)))
+                try:
+                    sleep(min((progress2.get_ETA(done_count / len(hash_threads))/100, 1)))
+                except ZeroDivisionError:
+                    sleep(0.01)
 
         print("") # to add a newline after the end of the progress bar
 
@@ -432,7 +435,10 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 last_done_count = done_count
                 progress2.print_progress_bar(done_count / len(hash_threads), done_count)
             else:
-                sleep(min((progress2.get_ETA(done_count / len(hash_threads))/100, 1))) # not sure if this is working at the moment
+                try:
+                    sleep(min((progress2.get_ETA(done_count / len(hash_threads))/100, 1))) # not sure if this is working at the moment
+                except ZeroDivisionError:
+                    sleep(0.01)
 
         print("") # to add a newline after the end of the progress bar
 
@@ -600,27 +606,27 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 def main():
     start_time = time()
-    files = get_all_files_in_folder("C:/")
+    files = get_all_files_in_folder("W:/")
     print("{} files".format(len(files)))
-    #files = limit_files_by_size(files, 1024*1024)
-    #print("{} files after limiting by size".format(len(files)))
-    #size = get_size_of_files(files)
-    #print("files are {} bytes total in size".format(size))
+    files = limit_files_by_size(files, 1024*1024)
+    print("{} files after limiting by size".format(len(files)))
+    size = get_size_of_files(files)
+    print("files are {} bytes total in size".format(size))
     #files2 = get_all_files_in_folder("C:/Users/onebi/Documents")
     #print("{} files".format(len(files2)))
     #files2 = limit_files_by_size(files2, 1024*1024)
     #print("{} files after limiting by size".format(len(files2)))
 
-    #duplicates = get_duplicate_files(files, files2)
+    duplicates = get_duplicate_files(files, files)
 
-    #import csv
-    #with open("duplicate_files.csv", "w", newline="") as file:
-    #    csv_writer = csv.writer(file)
-    #    for duplicate_pair in duplicates:
-    #        try:
-    #            csv_writer.writerow(duplicate_pair)
-    #        except UnicodeEncodeError:
-    #            pass
+    import csv
+    with open("duplicate_files.csv", "w", newline="") as file:
+        csv_writer = csv.writer(file)
+        for duplicate_pair in duplicates:
+            try:
+                csv_writer.writerow(duplicate_pair)
+            except UnicodeEncodeError:
+                pass
     
     print("{} seconds".format(time() - start_time))
 
