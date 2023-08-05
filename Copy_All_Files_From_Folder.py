@@ -153,9 +153,9 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
             done_count = 0
             for thread in threads:
                 done_count += thread.done()
+            all_threads_done = (done_count == len(threads))
             if done_count == 0:
                 continue
-            all_threads_done = (done_count == len(threads))
             if last_done_count != done_count:
                 last_done_count = done_count
                 progress_bar_object.print_progress_bar(done_count / len(threads), done_count)
