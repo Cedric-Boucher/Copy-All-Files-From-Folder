@@ -33,6 +33,54 @@ def is_folder_empty(path) -> bool:
     return True
 
 
+def get_subfolders(path) -> tuple[str]:
+    """
+    returns a tuple of the strings of absolute paths of all the subfolders of the input path
+    """
+    assert (os.path.exists(path)), "path does not exist"
+
+    subfolder_paths: list[str] = list()
+    for path_to_file, subfolders, _ in os.walk(os.path.abspath(path)):
+        subfolder_paths.extend([os.path.abspath(path_to_file+"/"+subfolder) for subfolder in subfolders])
+
+    return tuple(subfolder_paths)
+
+
+def get_immediate_subfolders(path) -> tuple[str]:
+    """
+    returns a tuple of the strings of absolute paths of the immediate subfolders of the input path
+    """
+    assert (os.path.exists(path)), "path does not exist"
+
+    subfolders_and_files = os.listdir(os.path.abspath(path))
+    subfolder_paths: list[str] = [os.path.abspath(path+"/"+subfolder_or_file) for subfolder_or_file in subfolders_and_files if os.path.isdir(os.path.abspath(path+"/"+subfolder_or_file))]
+
+    return tuple(subfolder_paths)
+
+
+def clean_subfolders(folderpath: str, unique_folders: set[str]) ->  None:
+    """
+    recursively deletes any folders in folderpath's subfolders (self-inclusive) that are empty
+    and are included in unique_folders
+    """
+    assert (os.path.exists(folderpath)), "folderpath didn't exist"
+    assert (isinstance(unique_folders, set)), "unique_folders was not a set"
+
+    folderpath = os.path.abspath(folderpath)
+    subfolders = get_immediate_subfolders(folderpath)
+    for subfolder in subfolders: # recursively clean subfolders
+        subfolder_in_unique_folders = (len(tuple(unique_folders.intersection(set((subfolder,))))) > 0)
+        if subfolder_in_unique_folders:
+            clean_subfolders(subfolder, unique_folders)
+
+    folder_in_unique_folders = (len(tuple(unique_folders.intersection(set((folderpath,))))) > 0)
+    if is_folder_empty(folderpath) and len(get_immediate_subfolders(folderpath)) == 0 and folder_in_unique_folders:
+        # if folder is now empty, we can delete this one
+        os.rmdir(folderpath)
+
+    return None
+
+
 def get_file_extensions_singlethreaded(filepaths: tuple[str]) -> tuple[str]:
     """
     returns a tuple of all unique file extensions in the filepaths given
@@ -493,6 +541,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     duplicate_file_matches: list[tuple[tuple[str], tuple[str]]] = list()
     total_extra_size = 0
+    total_extra_size = 0
 
     for filehash2 in filepaths_grouped_by_size_hash2.keys():
         if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash2[filehash2][0]) > 0 and len(filepaths_grouped_by_size_hash2[filehash2][1]) > 0)) or
@@ -505,6 +554,10 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
                 path2_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][1])
                 duplicate_file_matches.append((path1_match_files, path2_match_files))
             total_extra_size += filehash2[0] * len(duplicate_file_matches[-1][0])
+
+    if paths_are_identical:
+        total_extra_size /= 2
+    print("total size in bytes that can be freed by deleting extra copies of files: {}".format(total_extra_size))
 
     if paths_are_identical:
         total_extra_size /= 2
@@ -612,6 +665,7 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 def main():
     start_time = time()
+    """
     files = get_all_files_in_folder("C:/")
     print("{} files".format(len(files)))
     files = limit_files_by_size(files, 1024*1024)
@@ -635,6 +689,8 @@ def main():
                 pass
     
     print("{} seconds".format(time() - start_time))
+    """
+    clean_subfolders("C:/test1", set((os.path.abspath("C:/test1/test2"),os.path.abspath("C:/test1"))))
 
 if __name__ == "__main__":
     main()

@@ -103,6 +103,11 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     print("{} files left to operate on".format(new_number_of_files_total))
     number_of_files_total = new_number_of_files_total
 
+    unique_folders = set()
+    for filepath in input_files:
+        folderpath = os.path.dirname(filepath)
+        unique_folders.add(folderpath)
+
     if move_mode == "C" or (move_mode == "M" and not same_drive_input_output):
         # copy / move time is mainly based on raw MB/s throughput of drives
         rate_units = "MB"
@@ -138,7 +143,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     print("creating threads...")
     with ThreadPoolExecutor() as executor:
         for filepaths in grouped_filepaths:
-            thread = executor.submit(__move_files_unit_processor, filepaths, input_folder, output_folder, move_mode, keep_folder_structure)
+            thread = executor.submit(__move_files_unit_processor, filepaths, input_folder, output_folder, unique_folders, move_mode, keep_folder_structure)
             threads.append(thread)
 
         print("waiting for threads to return...")
@@ -196,7 +201,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     return error_return
 
 
-def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_folder, move_mode: str, keep_folder_structure: bool):
+def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_folder, unique_folders: set[str], move_mode: str, keep_folder_structure: bool):
     """
     multithreaded unit processor for move files
     do not use on its own
@@ -246,6 +251,11 @@ def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_fold
                 send2trash(filepath)
             elif move_mode == "D":
                 os.remove(filepath)
+
+            if move_mode in ("T", "D", "M"):
+                folderpath = os.path.dirname(filepath)
+                clean_subfolders(folderpath, unique_folders)
+
         except Error: # this shouldn't happen, and the line below will not be able to fix it
             success = move_file_error(filepath, output_folder_path, move_mode)
             error_counts[success[0]] += 1
