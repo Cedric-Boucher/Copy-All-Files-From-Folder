@@ -559,10 +559,6 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
         total_extra_size /= 2
     print("total size in bytes that can be freed by deleting extra copies of files: {}".format(total_extra_size))
 
-    if paths_are_identical:
-        total_extra_size /= 2
-    print("total size in bytes that can be freed by deleting extra copies of files: {}".format(total_extra_size))
-
     return tuple(duplicate_file_matches)
 
 
@@ -665,10 +661,9 @@ def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
 
 def main():
     start_time = time()
-    """
-    files = get_all_files_in_folder("C:/")
+    files = get_all_files_in_folder("K:/")
     print("{} files".format(len(files)))
-    files = limit_files_by_size(files, 1024*1024)
+    files = limit_files_by_size(files, 1024*1024*1024)
     print("{} files after limiting by size".format(len(files)))
     size = get_size_of_files(files)
     print("files are {} bytes total in size".format(size))
@@ -689,8 +684,6 @@ def main():
                 pass
     
     print("{} seconds".format(time() - start_time))
-    """
-    clean_subfolders("C:/test1", set((os.path.abspath("C:/test1/test2"),os.path.abspath("C:/test1"))))
 
 if __name__ == "__main__":
     main()
