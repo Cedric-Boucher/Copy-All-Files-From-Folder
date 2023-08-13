@@ -541,7 +541,6 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     duplicate_file_matches: list[tuple[tuple[str], tuple[str]]] = list()
     total_extra_size = 0
-    total_extra_size = 0
 
     for filehash2 in filepaths_grouped_by_size_hash2.keys():
         if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash2[filehash2][0]) > 0 and len(filepaths_grouped_by_size_hash2[filehash2][1]) > 0)) or
@@ -550,13 +549,12 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
             path1_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][0])
             if paths_are_identical:
                 duplicate_file_matches.append((path1_match_files, path1_match_files))
+                total_extra_size += filehash2[0] * (len(duplicate_file_matches[-1][0]) - 1) # size of (total matches minus the one to keep)
             else:
                 path2_match_files = tuple(filepaths_grouped_by_size_hash2[filehash2][1])
                 duplicate_file_matches.append((path1_match_files, path2_match_files))
-            total_extra_size += filehash2[0] * len(duplicate_file_matches[-1][0])
+                total_extra_size += filehash2[0] * (len(duplicate_file_matches[-1][0]) + len(duplicate_file_matches[-1][1]) - 1) # size of (total matches minus the one to keep)
 
-    if paths_are_identical:
-        total_extra_size /= 2
     print("total size in bytes that can be freed by deleting extra copies of files: {}".format(total_extra_size))
 
     return tuple(duplicate_file_matches)
