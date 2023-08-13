@@ -365,7 +365,7 @@ def move_file_error(filepath: str, destination_folder, move_mode: str = "C", max
 
 def main() -> None:
     start_time = time()
-    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed, keep_folder_structure, min_filesize, max_filesize) = parse_inputs() # TODO use min and max filesizes
+    (get_file_extensions_or_run_program, input_folder, output_folder, file_extensions, file_starts, move_mode, permanent_delete_confirmed, keep_folder_structure, min_filesize, max_filesize) = parse_inputs()
     assert (os.path.exists(input_folder)), "input folder does not exist"
 
     if get_file_extensions_or_run_program: # True means get file extensions
