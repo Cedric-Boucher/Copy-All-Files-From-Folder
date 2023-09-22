@@ -6,6 +6,9 @@ class Filelist():
     """
 
     def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64) -> None:
+        """
+        Filelist will initialize by creating the internal data structure with the given inputs here. Once this structure is created, it cannot be edited.
+        """
         assert (os.path.exists(input_folder)), "input_folder does not exist"
         assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
         assert (isinstance(start_with, tuple)), "start_with was not a tuple"
@@ -21,8 +24,9 @@ class Filelist():
         self.__min_filesize: int = min_filesize
         self.__max_filesize: int = max_filesize
 
-        self.__filepaths: tuple[str] = tuple()
+        self.__filepaths: tuple[str] = tuple() # full (absolute) filepath strings
         self.__create_filelist()
+        self.__filesizes: tuple[int] = tuple() # number of bytes, maps 1:1 with filepaths
 
         return None
 
