@@ -22,9 +22,9 @@ class Filelist():
         self.__max_filesize: int = max_filesize
 
         self.__filepaths: tuple[str] = tuple()
-        self.__get_files()
+        self.__create_filelist()
 
-    def __get_files(self) -> None:
+    def __create_filelist(self) -> None:
         """
         populates self.__filepaths
         """
