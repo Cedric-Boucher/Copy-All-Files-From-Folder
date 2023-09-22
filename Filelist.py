@@ -1,6 +1,10 @@
 import os
 
 class Filelist():
+    """
+    Stores information about all files in some input path that satisfy input requirements
+    """
+
     def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64) -> None:
         assert (os.path.exists(input_folder)), "input_folder does not exist"
         assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
