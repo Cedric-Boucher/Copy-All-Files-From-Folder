@@ -2,7 +2,8 @@ import os
 
 class Filelist():
     """
-    Stores information about all files in some input path that satisfy input requirements
+    Stores information about all files in some input path that satisfy input requirements.
+    Cannot be modified once created.
     """
 
     def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64) -> None:
