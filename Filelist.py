@@ -24,6 +24,7 @@ class Filelist():
         self.__filepaths: tuple[str] = tuple()
         self.__create_filelist()
 
+
     def __create_filelist(self) -> None:
         """
         populates self.__filepaths
@@ -35,3 +36,10 @@ class Filelist():
 
         self.__filepaths = tuple(files)
 
+
+    def get_filepaths(self) -> tuple[str]:
+        """
+        returns the list (well, a tuple) of filepaths
+        """
+
+        return self.__filepaths
