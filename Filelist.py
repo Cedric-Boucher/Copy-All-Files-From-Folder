@@ -36,6 +36,17 @@ class Filelist():
 
         self.__filepaths = tuple(files)
 
+        self.__limit_filelist_by_file_extensions()
+
+    def __limit_filelist_by_file_extensions(self) -> None:
+        """
+        removes any files in self.__filepaths that does not have one of the file extensions
+        """
+
+        new_filepaths: tuple[str] = tuple([filepath for filepath in self.__filepaths if filepath.endswith(self.__file_extensions)])
+
+        self.__filepaths = new_filepaths
+
 
     def get_filepaths(self) -> tuple[str]:
         """
