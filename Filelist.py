@@ -6,8 +6,11 @@ class Filelist():
     Stores information about all files in some input path that satisfy input requirements.
     Cannot be modified once created.
     """
+    DEFAULT_MAX_FILESIZE = 2**126
+    FILES_PER_MULTITHREADED_COMPUTE_GROUP = 10000 # for compute bound groups
+    FILES_PER_MULTITHREADED_IO_GROUP = 100 # for I/O bound groups
 
-    def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64) -> None:
+    def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = DEFAULT_MAX_FILESIZE) -> None:
         """
         Filelist will initialize by creating the internal data structure with the given inputs here. Once this structure is created, it cannot be edited.
         """
@@ -48,6 +51,7 @@ class Filelist():
 
         self.__limit_filelist_by_file_extensions()
         self.__limit_filelist_by_file_starts()
+        self.__limit_files_by_size()
 
         return None
 
@@ -55,11 +59,11 @@ class Filelist():
     def __create_size_list(self) -> None:
         """
         populates self.__filesizes
-
-        requires the filelist to be generated
         """
         if len(self.__filesizes) != 0:
             return None # we have already generated size list
+
+        self.__create_filelist()
 
         self.__filesizes = tuple([os.stat(filepath).st_size for filepath in self.__filepaths]) # FIXME may fail if a file has disappeared
 
@@ -106,27 +110,29 @@ class Filelist():
 
         does not modify self. to be used only be the multithreaded self.__limit_files_by_size method
         """
-        assert (start_index < stop_index), "start_index was not less than stop_index"
-
         indices_to_keep: list[int] = [index for index in range(start_index, stop_index) if (self.__filesizes[index] >= self.__min_filesize and self.__filesizes[index] <= self.__max_filesize)]
 
         return tuple(indices_to_keep)
 
 
-    def __limit_files_by_size(self, files_per_group: int = 100) -> None:
+    def __limit_files_by_size(self) -> None:
         """
         limits files to only keep files between min_size and max_size
         min and maxes are inclusive
-
-        requires the filelist and the size list to be generated
         """
+        files_per_group = self.FILES_PER_MULTITHREADED_COMPUTE_GROUP
+        if self.__min_filesize == 0 and self.__max_filesize == self.DEFAULT_MAX_FILESIZE:
+            return None # no need to limit by size
+
+        self.__create_size_list()
+
         indices_to_keep: list[int] = list()
 
         start_stop_index_groups: list[tuple[int, int]] = [tuple(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else self.__filepaths[i:] for i in range(0, len(self.__filepaths), files_per_group)]
 
         threads = list()
 
-        with ThreadPoolExecutor() as executor:
+        with ProcessPoolExecutor() as executor:
             for start_index, stop_index in start_stop_index_groups:
                 thread = executor.submit(self.__limit_files_by_size_singlethreaded, start_index, stop_index)
                 threads.append(thread)
@@ -143,5 +149,16 @@ class Filelist():
         """
         returns the list (well, a tuple) of filepaths
         """
+        self.__create_filelist()
 
         return self.__filepaths
+
+
+    def get_filesizes(self) -> tuple[str]:
+        """
+        returns the list (well, a tuple) of file sizes.
+        this is mapped to the tuple of filepaths from get_filepaths()
+        """
+        self.__create_size_list()
+
+        return self.__filesizes
