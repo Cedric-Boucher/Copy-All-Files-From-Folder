@@ -50,6 +50,7 @@ class Filelist():
 
         self.__filepaths = tuple(files)
 
+        # perform limits from least to most expensive in time
         self.__limit_filelist_by_file_extensions()
         self.__limit_filelist_by_file_starts()
         self.__limit_files_by_size()
