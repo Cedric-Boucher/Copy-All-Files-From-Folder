@@ -31,6 +31,7 @@ class Filelist():
 
         self.__filepaths: tuple[str] = tuple() # full (absolute) filepath strings
         self.__filesizes: tuple[int] = tuple() # number of bytes, maps 1:1 with filepaths
+        self.__folder_has_files: bool = None # None until known
 
         return None
 
@@ -186,13 +187,19 @@ class Filelist():
 
         ignores any filters. if you want to use filters, check the length of filepaths
         """
+        if self.__folder_has_files is not None:
+            return self.__folder_has_files
+
         if len(self.__filepaths) > 0:
+            self.__folder_has_files = True
             return True
-        
+
         # otherwise we aren't sure, so we check
 
         for _, _, sub_files in os.walk(self.__input_folder):
             if len(sub_files) > 0:
+                self.__folder_has_files = True
                 return True
 
+        self.__folder_has_files = False
         return False # didn't find any files
