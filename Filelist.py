@@ -183,6 +183,8 @@ class Filelist():
         """
         returns True if the folder contains any files,
         False if it has no files (it can contain subfolders)
+
+        ignores any filters. if you want to use filters, check the length of filepaths
         """
         if len(self.__filepaths) > 0:
             return True
