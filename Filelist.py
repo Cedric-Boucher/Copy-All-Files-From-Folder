@@ -59,13 +59,28 @@ class Filelist():
     def __create_size_list(self) -> None:
         """
         populates self.__filesizes
+
+        if any files no longer exist (fail to obtain size), they will be removed from filelist
         """
         if len(self.__filesizes) != 0:
             return None # we have already generated size list
 
         self.__create_filelist()
 
-        self.__filesizes = tuple([os.stat(filepath).st_size for filepath in self.__filepaths]) # FIXME may fail if a file has disappeared
+        filesizes: list[int] = list()
+        indices_to_remove: list[int] = list()
+
+        for index in range(len(self.__filepaths)):
+            filepath = self.__filepaths[index]
+            try:
+                filesizes.append(os.stat(filepath).st_size)
+            except:
+                # os.stat failed, file is no longer accessible
+                indices_to_remove.append(index)
+
+        self.__filepaths = tuple([self.__filepaths[index] for index in range(len(self.__filepaths)) if index not in indices_to_remove])
+        self.__filesizes = tuple(filesizes)
+        # these two are now mapped to each other and of the same length
 
         return None
 
