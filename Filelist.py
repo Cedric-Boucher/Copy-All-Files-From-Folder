@@ -5,6 +5,7 @@ class Filelist():
     """
     Stores information about all files in some input path that satisfy input requirements.
     Cannot be modified once created.
+    Cannot modify filesystems in any way, only reads from filesystems through OS.
     """
     DEFAULT_MAX_FILESIZE = 2**126
     FILES_PER_MULTITHREADED_COMPUTE_GROUP = 10000 # for compute bound groups
