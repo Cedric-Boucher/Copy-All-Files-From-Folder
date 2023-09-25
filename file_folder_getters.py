@@ -33,7 +33,7 @@ def is_folder_empty(path) -> bool:
     return True
 
 
-def get_subfolders(path) -> tuple[str]:
+def get_subfolders(path) -> tuple[str]: # TODO move to Filelist
     """
     returns a tuple of the strings of absolute paths of all the subfolders of the input path
     """
@@ -46,7 +46,7 @@ def get_subfolders(path) -> tuple[str]:
     return tuple(subfolder_paths)
 
 
-def get_immediate_subfolders(path) -> tuple[str]:
+def get_immediate_subfolders(path) -> tuple[str]: # TODO move to Filelist
     """
     returns a tuple of the strings of absolute paths of the immediate subfolders of the input path
     """
@@ -99,7 +99,7 @@ def get_file_extensions_singlethreaded(filepaths: tuple[str]) -> tuple[str]:
     return tuple(file_extensions)
 
 
-def get_file_extensions(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]:
+def get_file_extensions(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]: # TODO move to Filelist
     """
     returns a tuple of all unique file extensions in the filepaths given
     """
@@ -152,7 +152,7 @@ def limit_files_by_file_start(filepaths: tuple[str], file_starts: tuple[str]) ->
     return tuple(new_filepaths)
 
 
-def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]: # FIXME not particularly useful anymore? it's just a bit odd
+def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]: # FIXME not needed since you can just get file sizes
     """
     gets all files from path which:
         are less than or equal to the size cutoff if is_max is True
@@ -227,7 +227,7 @@ def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int 
     return tuple(new_filepaths)
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str], tuple[str]]]:
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str], tuple[str]]]: # TODO move to Filelist
     """
     returns all the files that are duplicated between path1 and path2,
     as a tuple (each unique file/match)
@@ -560,7 +560,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
     return tuple(duplicate_file_matches)
 
 
-def __get_multiple_file_hashes(filepaths: tuple[str], buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = True) -> tuple[str]:
+def __get_multiple_file_hashes(filepaths: tuple[str], buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = True) -> tuple[str]: # TODO something similar in Filelist
     """
     calls get_hash for each filepath in filepaths, returns the tuple of the results
     """
@@ -592,7 +592,7 @@ def __get_multiple_file_sizes(filepaths: tuple[str]) -> tuple[int]:
     return tuple(ordered_file_sizes)
 
 
-def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = False) -> str:
+def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = False) -> str: # TODO move to Filelist as private
     """
     gets the hash (sha256) of a file
     default buffer size of 16MiB
