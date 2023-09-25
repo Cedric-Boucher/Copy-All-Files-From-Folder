@@ -177,3 +177,20 @@ class Filelist():
         self.__create_size_list()
 
         return self.__filesizes
+
+
+    def does_folder_have_files(self) -> bool:
+        """
+        returns True if the folder contains any files,
+        False if it has no files (it can contain subfolders)
+        """
+        if len(self.__filepaths) > 0:
+            return True
+        
+        # otherwise we aren't sure, so we check
+
+        for _, _, sub_files in os.walk(self.__input_folder):
+            if len(sub_files) > 0:
+                return True
+
+        return False # didn't find any files
