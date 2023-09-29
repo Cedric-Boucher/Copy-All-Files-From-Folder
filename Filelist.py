@@ -8,7 +8,7 @@ class Filelist():
     Cannot modify filesystems in any way, only reads from filesystems through OS.
     """
     DEFAULT_MAX_FILESIZE = 2**126
-    FILES_PER_MULTITHREADED_COMPUTE_GROUP = 10000 # for compute bound groups
+    FILES_PER_MULTITHREADED_COMPUTE_GROUP = 100000 # for compute bound groups
     FILES_PER_MULTITHREADED_IO_GROUP = 100 # for I/O bound groups
 
     def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = DEFAULT_MAX_FILESIZE) -> None:
@@ -32,6 +32,7 @@ class Filelist():
 
         self.__filepaths: tuple[str] = tuple() # full (absolute) filepath strings
         self.__filesizes: tuple[int] = tuple() # number of bytes, maps 1:1 with filepaths
+        self.__file_extensions_found: tuple[str] = tuple() # all the unique file extensions found in filepaths
         self.__folder_has_files: bool = None # None until known
 
         return None
@@ -182,6 +183,53 @@ class Filelist():
         return self.__filesizes
 
 
+    def __get_file_extensions_singlethreaded(self, start_index: int, stop_index: int) -> set[str]:
+        """
+        returns a set of all unique file extensions in the filepaths given
+
+        does not modify self. to be used only be the multithreaded self.get_file_extensions method
+        """
+        file_extensions = set()
+
+        for index in range(start_index, stop_index):
+            filename = os.path.basename(self.__filepaths[index]) # get only the filename
+            file_extension = "."+filename.split(".")[-1]
+            if (not filename.startswith(".")) and (not file_extension.count(" ")): # makes sure files don't start with "." or contain a space in the extension
+                file_extensions.add(file_extension)
+
+        return file_extensions
+
+
+    def get_file_extensions(self) -> tuple[str]: # TODO add memory shortcutting
+        """
+        returns a tuple of all unique file extensions
+        multithreaded to speed up having to go through potentially millions of files
+        """
+        if len(self.__file_extensions_found) != 0:
+            return self.__file_extensions_found # we have already found file extensions
+
+        files_per_group = self.FILES_PER_MULTITHREADED_COMPUTE_GROUP
+
+        self.__create_filelist()
+
+        file_extensions = set()
+
+        start_stop_index_groups: list[tuple[int, int]] = [tuple(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else self.__filepaths[i:] for i in range(0, len(self.__filepaths), files_per_group)]
+
+        threads = list()
+
+        with ProcessPoolExecutor() as executor:
+            for start_index, stop_index in start_stop_index_groups:
+                thread = executor.submit(self.__get_file_extensions_singlethreaded, start_index, stop_index)
+                threads.append(thread)
+            wait(threads)
+            [file_extensions.update(thread.result()) for thread in threads]
+
+        self.__file_extensions_found = tuple(file_extensions)
+
+        return self.__file_extensions_found
+
+
     def does_folder_have_files(self) -> bool:
         """
         returns True if the folder contains any files,
@@ -204,4 +252,5 @@ class Filelist():
                 return True
 
         self.__folder_has_files = False
+
         return False # didn't find any files
