@@ -336,5 +336,12 @@ def main():
         - [ ] obtaining whether folder has files manually after obtaining whether folder has files
     """
 
+def test_Filelist():
+    """
+    runs all tests on Filelist to ensure things are working as expected
+    """
+
+
 if __name__ == "__main__":
     main()
+    test_Filelist()
