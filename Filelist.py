@@ -134,7 +134,7 @@ class Filelist():
         return tuple(indices_to_keep)
 
 
-    def __limit_files_by_size(self) -> None:
+    def __limit_files_by_size(self) -> None: # TODO create single-threaded version for time comparison
         """
         limits files to only keep files between min_size and max_size
         min and maxes are inclusive
@@ -319,3 +319,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+print("number of file extensions: {}".format(len(
