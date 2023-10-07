@@ -183,21 +183,29 @@ class Filelist():
         return self.__filesizes
 
 
-    def __get_file_extensions_singlethreaded(self, start_index: int, stop_index: int) -> set[str]:
+    def get_file_extensions_singlethreaded(self) -> tuple[str]:
         """
-        returns a set of all unique file extensions in the filepaths given
+        returns a tuple of all unique file extensions
+        faster than the multithreaded version in some (or all) cases
+        """
+        if len(self.__file_extensions_found) != 0:
+            return self.__file_extensions_found # we have already found file extensions
 
-        does not modify self. to be used only be the multithreaded self.get_file_extensions method
-        """
+        self.__create_filelist()
+
         file_extensions = set()
 
-        for index in range(start_index, stop_index):
+        for index in range(len(self.__filepaths)):
             filename = os.path.basename(self.__filepaths[index]) # get only the filename
             file_extension = "."+filename.split(".")[-1]
             if (not filename.startswith(".")) and (not file_extension.count(" ")): # makes sure files don't start with "." or contain a space in the extension
                 file_extensions.add(file_extension)
 
-        return file_extensions
+
+        self.__file_extensions_found = tuple(file_extensions)
+
+        return self.__file_extensions_found
+
 
 
     def get_file_extensions(self) -> tuple[str]:
@@ -214,13 +222,13 @@ class Filelist():
 
         file_extensions = set()
 
-        start_stop_index_groups: list[tuple[int, int]] = [tuple(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else tuple([i, len(self.__filepaths)]) for i in range(0, len(self.__filepaths), files_per_group)]
+        start_stop_index_groups: list[tuple[int, int]] = [(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else (i, len(self.__filepaths)) for i in range(0, len(self.__filepaths), files_per_group)]
 
         threads = list()
 
-        with ThreadPoolExecutor() as executor: # I would have liked this to be a process pool but that breaks, apparently? FIXME?
+        with ProcessPoolExecutor() as executor:
             for start_index, stop_index in start_stop_index_groups:
-                thread = executor.submit(self.__get_file_extensions_singlethreaded, start_index, stop_index)
+                thread = executor.submit(get_file_extensions_singlethreaded, self, start_index, stop_index)
                 threads.append(thread)
             wait(threads)
             [file_extensions.update(thread.result()) for thread in threads]
@@ -257,9 +265,41 @@ class Filelist():
 
 
 
+def get_file_extensions_singlethreaded(filelist: Filelist, start_index: int, stop_index: int) -> set[str]:
+    """
+    returns a set of all unique file extensions in the filepaths given
+
+    to be used only be the multithreaded Filelist.get_file_extensions method
+    """
+    file_extensions = set()
+
+    filepaths = filelist.get_filepaths() # extremely fast since the object already contains the filepaths list
+
+    for index in range(start_index, stop_index):
+        filename = os.path.basename(filepaths[index]) # get only the filename
+        file_extension = "."+filename.split(".")[-1]
+        if (not filename.startswith(".")) and (not file_extension.count(" ")): # makes sure files don't start with "." or contain a space in the extension
+            file_extensions.add(file_extension)
+
+    return file_extensions
+
+
+
 def main():
-    test_filelist = Filelist("/home/d3zyre/Documents")
+    from time import time
+
+    t = time()
+    test_filelist = Filelist("/home/d3zyre")
+    print(time() - t)
+    t = time()
+
     print(len(test_filelist.get_file_extensions()))
+    print(time() - t)
+    t = time()
+
+    print(len(test_filelist.get_file_extensions_singlethreaded()))
+    print(time() - t)
+
 
 if __name__ == "__main__":
     main()
