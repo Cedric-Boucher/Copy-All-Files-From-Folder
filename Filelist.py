@@ -214,7 +214,7 @@ class Filelist():
 
         file_extensions = set()
 
-        start_stop_index_groups: list[tuple[int, int]] = [tuple(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else tuple([i, len(self.__filepaths)-1]) for i in range(0, len(self.__filepaths), files_per_group)]
+        start_stop_index_groups: list[tuple[int, int]] = [tuple(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else tuple([i, len(self.__filepaths)]) for i in range(0, len(self.__filepaths), files_per_group)]
 
         threads = list()
 
