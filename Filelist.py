@@ -155,7 +155,7 @@ class Filelist():
 
         threads = list()
 
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor() as executor: # TODO test if this works. it most likely doesn't
             for start_index, stop_index in start_stop_index_groups:
                 thread = executor.submit(self.__limit_files_by_size_singlethreaded, start_index, stop_index)
                 threads.append(thread)
@@ -320,6 +320,21 @@ def main():
     print("time to get file extensions singlethreaded again: {:.1e} seconds".format(time() - t))
     t = time()
 
+    """
+    functionality to test:
+    - [ ] creating Filelist object and using them for each of the items below with various input parameter settings:
+        - [ ] obtaining filepaths manually
+        - [ ] obtaining filepaths manually after obtaining filepaths manually
+        - [ ] obtaining file extensions manually without obtaining filepaths first
+        - [ ] obtaining file extensions manually after obtaining filepaths manually
+        - [ ] obtaining file extensions manually after obtaining file extensions manually
+        - [ ] obtaining file sizes manually without obtaining filepaths first
+        - [ ] obtaining file sizes manually after obtaining filepaths manually
+        - [ ] obtaining file sizes manually after obtaining file sizes manually
+        - [ ] obtaining whether folder has files manually without obtaining filepaths first
+        - [ ] obtaining whether folder has files manually after obtaining filepaths manually
+        - [ ] obtaining whether folder has files manually after obtaining whether folder has files
+    """
 
 if __name__ == "__main__":
     main()
