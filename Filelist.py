@@ -290,15 +290,15 @@ def main():
 
     t = time()
     test_filelist = Filelist("/home/d3zyre")
-    print(time() - t)
+    print("time to create Filelist object: {:.1e} seconds".format(time() - t))
     t = time()
 
-    print(len(test_filelist.get_file_extensions()))
-    print(time() - t)
+    print("number of file extensions: {}".format(len(test_filelist.get_file_extensions())))
+    print("time to get file extensions multithreaded: {:.1e} seconds".format(time() - t))
     t = time()
 
-    print(len(test_filelist.get_file_extensions_singlethreaded()))
-    print(time() - t)
+    print("number of file extensions: {}".format(len(test_filelist.get_file_extensions_singlethreaded())))
+    print("time to get file extensions singlethreaded: {:.1e} seconds".format(time() - t))
 
 
 if __name__ == "__main__":
