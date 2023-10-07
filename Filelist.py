@@ -350,9 +350,9 @@ def test_Filelist():
         Filelist(test_folder, file_extensions=(), start_with=(), min_filesize=4096, max_filesize=1024**2),
         Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt"), start_with=("File", "test"), min_filesize=4096, max_filesize=1024**2)
         )
-    
+
     current_test = [0, 0]
-    
+
     for filelist in filelists:
         current_test[0] += 1
 
