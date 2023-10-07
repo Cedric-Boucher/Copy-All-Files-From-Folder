@@ -126,38 +126,27 @@ class Filelist():
         return None
 
 
-    def __limit_files_by_size_singlethreaded(self, start_index: int, stop_index: int) -> tuple[int]:
-        """
-        limits files to only keep files between min_size and max_size
-        min and maxes are inclusive
-
-        does not modify self. to be used only be the multithreaded self.__limit_files_by_size method
-        """
-        indices_to_keep: list[int] = [index for index in range(start_index, stop_index) if (self.__filesizes[index] >= self.__min_filesize and self.__filesizes[index] <= self.__max_filesize)]
-
-        return tuple(indices_to_keep)
-
-
     def __limit_files_by_size(self) -> None: # TODO create single-threaded version for time comparison
         """
         limits files to only keep files between min_size and max_size
         min and maxes are inclusive
         """
-        files_per_group = self.FILES_PER_MULTITHREADED_COMPUTE_GROUP
         if self.__min_filesize == 0 and self.__max_filesize == self.DEFAULT_MAX_FILESIZE:
             return None # no need to limit by size
+
+        files_per_group = self.FILES_PER_MULTITHREADED_COMPUTE_GROUP
 
         self.__create_size_list()
 
         indices_to_keep: list[int] = list()
 
-        start_stop_index_groups: list[tuple[int, int]] = [tuple(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else self.__filepaths[i:] for i in range(0, len(self.__filepaths), files_per_group)]
+        start_stop_index_groups: list[tuple[int, int]] = [(i, i+files_per_group) if i+files_per_group < len(self.__filepaths) else (i, len(self.__filepaths)) for i in range(0, len(self.__filepaths), files_per_group)]
 
         threads = list()
 
-        with ProcessPoolExecutor() as executor: # TODO test if this works. it most likely doesn't
+        with ProcessPoolExecutor() as executor: # FIXME broken
             for start_index, stop_index in start_stop_index_groups:
-                thread = executor.submit(self.__limit_files_by_size_singlethreaded, start_index, stop_index)
+                thread = executor.submit(limit_files_by_size_singlethreaded, self, start_index, stop_index, self.__min_filesize, self.__max_filesize)
                 threads.append(thread)
             wait(threads)
             [indices_to_keep.extend(thread.result()) for thread in threads]
@@ -286,6 +275,22 @@ def get_file_extensions_singlethreaded(filelist: Filelist, start_index: int, sto
             file_extensions.add(file_extension)
 
     return file_extensions
+
+
+def limit_files_by_size_singlethreaded(filelist: Filelist, start_index: int, stop_index: int, min_filesize: int, max_filesize: int) -> tuple[int]:
+    """
+    limits files to only keep files between min_size and max_size
+    min and maxes are inclusive
+
+    returns the indices to keep from the filepaths tuple in the filelist object
+
+    to be used only be the multithreaded Filelist.__limit_files_by_size method
+    """
+    filesizes = filelist.get_filesizes()
+
+    indices_to_keep: list[int] = [index for index in range(start_index, stop_index) if (filesizes[index] >= min_filesize and filesizes[index] <= max_filesize)]
+
+    return tuple(indices_to_keep)
 
 
 
