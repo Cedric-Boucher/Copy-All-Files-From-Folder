@@ -355,6 +355,7 @@ def test_Filelist():
 
     for filelist in filelists:
         current_test[0] += 1
+        current_test[1] = 0
 
         # obtaining filepaths manually
         current_test[1] += 1
