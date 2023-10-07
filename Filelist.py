@@ -144,7 +144,7 @@ class Filelist():
 
         threads = list()
 
-        with ProcessPoolExecutor() as executor: # FIXME broken
+        with ProcessPoolExecutor() as executor:
             for start_index, stop_index in start_stop_index_groups:
                 thread = executor.submit(limit_files_by_size_singlethreaded, self, start_index, stop_index, self.__min_filesize, self.__max_filesize)
                 threads.append(thread)
