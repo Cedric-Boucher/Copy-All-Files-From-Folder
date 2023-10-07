@@ -1,5 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as_completed
 
 class Filelist():
     """
@@ -218,7 +218,7 @@ class Filelist():
 
         threads = list()
 
-        with ProcessPoolExecutor() as executor:
+        with ThreadPoolExecutor() as executor: # I would have liked this to be a process pool but that breaks, apparently? FIXME?
             for start_index, stop_index in start_stop_index_groups:
                 thread = executor.submit(self.__get_file_extensions_singlethreaded, start_index, stop_index)
                 threads.append(thread)
