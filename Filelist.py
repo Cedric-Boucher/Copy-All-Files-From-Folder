@@ -319,4 +319,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-print("number of file extensions: {}".format(len(
