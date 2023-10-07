@@ -200,7 +200,7 @@ class Filelist():
         return file_extensions
 
 
-    def get_file_extensions(self) -> tuple[str]: # TODO add memory shortcutting
+    def get_file_extensions(self) -> tuple[str]:
         """
         returns a tuple of all unique file extensions
         multithreaded to speed up having to go through potentially millions of files
@@ -259,7 +259,7 @@ class Filelist():
 
 def main():
     test_filelist = Filelist("/home/d3zyre/Documents")
-    print(test_filelist.get_file_extensions())
+    print(len(test_filelist.get_file_extensions()))
 
 if __name__ == "__main__":
     main()
