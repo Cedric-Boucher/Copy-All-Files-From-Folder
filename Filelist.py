@@ -6,6 +6,10 @@ class Filelist():
     Stores information about all files in some input path that satisfy input requirements.
     Cannot be modified once created.
     Cannot modify filesystems in any way, only reads from filesystems through OS.
+
+    Filelist only obtains information from the filesystem (I/O bottlenecked operations) when it is requested.
+    However, once information has been obtained, it is saved so that if it is requested again it can be returned instantly.
+    Therefore, creating a filelist object is extremely fast, but obtaining the list of filepaths for the first time is I/O bottlenecked.
     """
     DEFAULT_MAX_FILESIZE = 2**126
     FILES_PER_MULTITHREADED_COMPUTE_GROUP = 100000 # for compute bound groups
