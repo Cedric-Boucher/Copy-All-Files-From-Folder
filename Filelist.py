@@ -1,5 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
+from copy import deepcopy
 
 class Filelist():
     """
@@ -365,73 +366,73 @@ def test_Filelist():
         # obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test1 = filelist
+        test1 = deepcopy(filelist)
         test1.get_filepaths()
 
         # obtaining filepaths manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test2 = filelist
+        test2 = deepcopy(filelist)
         test2.get_filepaths()
         test2.get_filepaths()
 
         # obtaining file extensions manually without obtaining filepaths first
         current_test[1] += 1
         print(current_test)
-        test3 = filelist
+        test3 = deepcopy(filelist)
         test3.get_file_extensions()
 
         # obtaining file extensions manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test4 = filelist
+        test4 = deepcopy(filelist)
         test4.get_filepaths()
         test4.get_file_extensions()
 
         # obtaining file extensions manually after obtaining file extensions manually
         current_test[1] += 1
         print(current_test)
-        test5 = filelist
+        test5 = deepcopy(filelist)
         test5.get_file_extensions()
         test5.get_file_extensions()
 
         # obtaining file sizes manually without obtaining filepaths first
         current_test[1] += 1
         print(current_test)
-        test6 = filelist
+        test6 = deepcopy(filelist)
         test6.get_filesizes()
 
         # obtaining file sizes manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test7 = filelist
+        test7 = deepcopy(filelist)
         test7.get_filepaths()
         test7.get_filesizes()
 
         # obtaining file sizes manually after obtaining file sizes manually
         current_test[1] += 1
         print(current_test)
-        test8 = filelist
+        test8 = deepcopy(filelist)
         test8.get_filesizes()
         test8.get_filesizes()
 
         # obtaining whether folder has files manually without obtaining filepaths first
         current_test[1] += 1
         print(current_test)
-        test9 = filelist
+        test9 = deepcopy(filelist)
         test9.does_folder_have_files()
 
         # obtaining whether folder has files manually after obtaining filepaths first
         current_test[1] += 1
         print(current_test)
-        test10 = filelist
+        test10 = deepcopy(filelist)
         test10.get_filepaths()
         test10.does_folder_have_files()
 
         # obtaining whether folder has files manually after obtaining whether folder has files manually
         current_test[1] += 1
         print(current_test)
-        test11 = filelist
+        test11 = deepcopy(filelist)
         test11.does_folder_have_files()
         test11.does_folder_have_files()
 
