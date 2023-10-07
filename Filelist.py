@@ -1,5 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
 
 class Filelist():
     """
