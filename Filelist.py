@@ -289,16 +289,32 @@ def main():
     from time import time
 
     t = time()
-    test_filelist = Filelist("/home/d3zyre")
+    filelist = Filelist("/home/d3zyre")
     print("time to create Filelist object: {:.1e} seconds".format(time() - t))
     t = time()
 
-    print("number of file extensions: {}".format(len(test_filelist.get_file_extensions())))
+    print("number of files: {}".format(len(filelist.get_filepaths())))
+    print("time to get filepaths: {:.1e} seconds".format(time() - t))
+    t = time()
+
+    print("number of file extensions: {}".format(len(filelist.get_file_extensions())))
     print("time to get file extensions multithreaded: {:.1e} seconds".format(time() - t))
     t = time()
 
-    print("number of file extensions: {}".format(len(test_filelist.get_file_extensions_singlethreaded())))
+    filelist.get_file_extensions()
+    print("time to get file extensions multithreaded again: {:.1e} seconds".format(time() - t))
+
+    filelist = Filelist("/home/d3zyre") # clear saved file list and file extensions
+    filelist.get_filepaths()
+    t = time()
+
+    filelist.get_file_extensions_singlethreaded()
     print("time to get file extensions singlethreaded: {:.1e} seconds".format(time() - t))
+    t = time()
+
+    filelist.get_file_extensions_singlethreaded()
+    print("time to get file extensions singlethreaded again: {:.1e} seconds".format(time() - t))
+    t = time()
 
 
 if __name__ == "__main__":
