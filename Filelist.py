@@ -459,3 +459,5 @@ def test_Filelist():
 if __name__ == "__main__":
     #main()
     test_Filelist()
+
+# TODO ratio the time taken by test1?
