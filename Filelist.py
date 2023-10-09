@@ -352,6 +352,8 @@ def test_Filelist():
     test_folder = "/home/d3zyre"
     filelists = (
         Filelist(test_folder),
+        Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt")),
+        Filelist(test_folder, start_with=("File", "test")),
         Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt"), start_with=("File", "test")),
         Filelist(test_folder, min_filesize=4096),
         Filelist(test_folder, max_filesize=1024**2),
