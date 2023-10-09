@@ -378,8 +378,7 @@ def test_Filelist():
         # obtaining filepaths manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test2 = deepcopy(filelist)
-        test2.get_filepaths()
+        test2 = deepcopy(test1) # skip getting filepaths again by using test1
         t = time()
         test2.get_filepaths()
         print("{:.1e} seconds\n".format(time() - t))
@@ -395,8 +394,7 @@ def test_Filelist():
         # obtaining file extensions manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test4 = deepcopy(filelist)
-        test4.get_filepaths()
+        test4 = deepcopy(test1) # skip getting filepaths again by using test1
         t = time()
         test4.get_file_extensions()
         print("{:.1e} seconds\n".format(time() - t))
@@ -404,8 +402,7 @@ def test_Filelist():
         # obtaining file extensions manually after obtaining file extensions manually
         current_test[1] += 1
         print(current_test)
-        test5 = deepcopy(filelist)
-        test5.get_file_extensions()
+        test5 = deepcopy(test3) # skip getting file extensions again by using test3
         t = time()
         test5.get_file_extensions()
         print("{:.1e} seconds\n".format(time() - t))
@@ -421,8 +418,7 @@ def test_Filelist():
         # obtaining file sizes manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
-        test7 = deepcopy(filelist)
-        test7.get_filepaths()
+        test7 = deepcopy(test1) # skip getting filepaths again by using test1
         t = time()
         test7.get_filesizes()
         print("{:.1e} seconds\n".format(time() - t))
@@ -430,8 +426,7 @@ def test_Filelist():
         # obtaining file sizes manually after obtaining file sizes manually
         current_test[1] += 1
         print(current_test)
-        test8 = deepcopy(filelist)
-        test8.get_filesizes()
+        test8 = deepcopy(test6) # skip getting file sizes again by using test6
         t = time()
         test8.get_filesizes()
         print("{:.1e} seconds\n".format(time() - t))
@@ -447,8 +442,7 @@ def test_Filelist():
         # obtaining whether folder has files manually after obtaining filepaths first
         current_test[1] += 1
         print(current_test)
-        test10 = deepcopy(filelist)
-        test10.get_filepaths()
+        test10 = deepcopy(test1) # skip getting filepaths again by using test1
         t = time()
         test10.does_folder_have_files()
         print("{:.1e} seconds\n".format(time() - t))
@@ -456,8 +450,7 @@ def test_Filelist():
         # obtaining whether folder has files manually after obtaining whether folder has files manually
         current_test[1] += 1
         print(current_test)
-        test11 = deepcopy(filelist)
-        test11.does_folder_have_files()
+        test11 = deepcopy(test9) # skip checking for files again by using test9
         t = time()
         test11.does_folder_have_files()
         print("{:.1e} seconds\n".format(time() - t))
