@@ -347,6 +347,8 @@ def test_Filelist():
         - [x] obtaining whether folder has files manually after obtaining filepaths manually
         - [x] obtaining whether folder has files manually after obtaining whether folder has files
     """
+    from time import time
+
     test_folder = "/home/d3zyre"
     filelists = (
         Filelist(test_folder, file_extensions=(), start_with=(), min_filesize=0, max_filesize=2**126),
@@ -367,74 +369,96 @@ def test_Filelist():
         current_test[1] += 1
         print(current_test)
         test1 = deepcopy(filelist)
+        t = time()
         test1.get_filepaths()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining filepaths manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
         test2 = deepcopy(filelist)
         test2.get_filepaths()
+        t = time()
         test2.get_filepaths()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining file extensions manually without obtaining filepaths first
         current_test[1] += 1
         print(current_test)
         test3 = deepcopy(filelist)
+        t = time()
         test3.get_file_extensions()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining file extensions manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
         test4 = deepcopy(filelist)
         test4.get_filepaths()
+        t = time()
         test4.get_file_extensions()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining file extensions manually after obtaining file extensions manually
         current_test[1] += 1
         print(current_test)
         test5 = deepcopy(filelist)
         test5.get_file_extensions()
+        t = time()
         test5.get_file_extensions()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining file sizes manually without obtaining filepaths first
         current_test[1] += 1
         print(current_test)
         test6 = deepcopy(filelist)
+        t = time()
         test6.get_filesizes()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining file sizes manually after obtaining filepaths manually
         current_test[1] += 1
         print(current_test)
         test7 = deepcopy(filelist)
         test7.get_filepaths()
+        t = time()
         test7.get_filesizes()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining file sizes manually after obtaining file sizes manually
         current_test[1] += 1
         print(current_test)
         test8 = deepcopy(filelist)
         test8.get_filesizes()
+        t = time()
         test8.get_filesizes()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining whether folder has files manually without obtaining filepaths first
         current_test[1] += 1
         print(current_test)
         test9 = deepcopy(filelist)
+        t = time()
         test9.does_folder_have_files()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining whether folder has files manually after obtaining filepaths first
         current_test[1] += 1
         print(current_test)
         test10 = deepcopy(filelist)
         test10.get_filepaths()
+        t = time()
         test10.does_folder_have_files()
+        print("{:.1e} seconds\n".format(time() - t))
 
         # obtaining whether folder has files manually after obtaining whether folder has files manually
         current_test[1] += 1
         print(current_test)
         test11 = deepcopy(filelist)
         test11.does_folder_have_files()
+        t = time()
         test11.does_folder_have_files()
+        print("{:.1e} seconds\n".format(time() - t))
 
 
 if __name__ == "__main__":
