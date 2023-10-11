@@ -5,34 +5,6 @@ from progress_bar import progress_bar
 import hashlib
 
 
-def get_all_files_in_folder(path) -> tuple[str]:
-    """
-    returns a tuple of all the files in a folder and subfolders,
-    the strings in the tuple are full absolute file paths
-    """
-    assert (os.path.exists(path)), "path does not exist"
-
-    files = list()
-
-    for path_to_file, _, sub_files in os.walk(os.path.abspath(path)):
-        files.extend([os.path.abspath(path_to_file+"/"+sub_file) for sub_file in sub_files])
-
-    return tuple(files)
-
-
-def is_folder_empty(path) -> bool:
-    """
-    returns True if the folder has no files (it can have subfolders)
-    """
-    files = 0
-    for _, _, sub_files in os.walk(os.path.abspath(path)):
-        files += len(sub_files)
-        if files:
-            return False
-
-    return True
-
-
 def get_subfolders(path) -> tuple[str]: # TODO move to Filelist
     """
     returns a tuple of the strings of absolute paths of all the subfolders of the input path
@@ -58,7 +30,7 @@ def get_immediate_subfolders(path) -> tuple[str]: # TODO move to Filelist
     return tuple(subfolder_paths)
 
 
-def clean_subfolders(folderpath: str, unique_folders: set[str]) ->  None:
+def clean_subfolders(folderpath: str, unique_folders: set[str]) ->  None: # FIXME currently non-functional
     """
     recursively deletes any folders in folderpath's subfolders (self-inclusive) that are empty
     and are included in unique_folders
@@ -79,152 +51,6 @@ def clean_subfolders(folderpath: str, unique_folders: set[str]) ->  None:
         os.rmdir(folderpath)
 
     return None
-
-
-def get_file_extensions_singlethreaded(filepaths: tuple[str]) -> tuple[str]:
-    """
-    returns a tuple of all unique file extensions in the filepaths given
-    """
-    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
-
-    file_extensions = set()
-
-    for filepath in filepaths:
-        assert (isinstance(filepath, str)), "at least one filepath was not a string"
-        filepath = os.path.basename(filepath) # get only the filename (to exclude folders with "." with files with no extension)
-        file_extension = "."+filepath.split(".")[-1]
-        if (not filepath.startswith(".")) and (not file_extension.count(" ")): # makes sure files don't start with "." or contain a space after "."
-            file_extensions.add(file_extension)
-
-    return tuple(file_extensions)
-
-
-def get_file_extensions(filepaths: tuple[str], files_per_group: int = 100000) -> tuple[str]: # TODO move to Filelist
-    """
-    returns a tuple of all unique file extensions in the filepaths given
-    """
-    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
-
-    file_extensions = set()
-
-    grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
-
-    threads = list()
-
-    with ProcessPoolExecutor() as executor:
-        for filepaths in grouped_filepaths:
-            thread = executor.submit(get_file_extensions_singlethreaded, filepaths)
-            threads.append(thread)
-        wait(threads)
-        [file_extensions.update(set(thread.result())) for thread in threads]
-
-    return tuple(file_extensions)
-
-
-def limit_files_by_file_extension(filepaths: tuple[str], file_extensions: tuple[str]) -> tuple[str]:
-    """
-    returns a limited version of the input filepaths tuple, by only keeping
-    any files that have a file extension in the file_extensions tuple
-    """
-    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
-    assert (isinstance(file_extensions, tuple)), "file_extensions was not a tuple"
-
-    new_filepaths: tuple[str] = tuple([filepath for filepath in filepaths if filepath.endswith(file_extensions)])
-
-    return new_filepaths
-
-
-def limit_files_by_file_start(filepaths: tuple[str], file_starts: tuple[str]) -> tuple[str]:
-    """
-    returns a limited version of the input filepaths tuple, by only keeping
-    any files that their filenames start with one of the strings in file_starts
-    """
-    assert (isinstance(filepaths, tuple)), "filepaths was not a tuple"
-    assert (isinstance(file_starts, tuple)), "file_starts was not a tuple"
-
-    new_filepaths: list[str] = list()
-
-    for filepath in filepaths:
-        filename = os.path.basename(filepath)
-        if filename.startswith(file_starts):
-            new_filepaths.append(filename)
-
-    return tuple(new_filepaths)
-
-
-def get_small_or_large_files(filepaths: tuple[str], size_cutoff: int, is_max: bool = True) -> tuple[tuple[str, int]]: # FIXME not needed since you can just get file sizes
-    """
-    gets all files from path which:
-        are less than or equal to the size cutoff if is_max is True
-        are greater than or equal to the size cutoff if is_max is False
-    
-    returns a tuple of tuples of the full filepaths and their corresponding filesize
-    """
-    assert (isinstance(filepaths, tuple)), "path does not exist"
-    assert (isinstance(size_cutoff, int)), "size cutoff was not an int"
-    assert (size_cutoff >= 0), "size cutoff was negative"
-    assert (isinstance(is_max, bool)), "is_max was not a bool"
-
-    files_sizes_pairs: list[tuple[str, int]] = list()
-
-    for filepath in filepaths:
-        try: # faster than checking if file exists
-            file_size = os.stat(filepath).st_size
-        except:
-            continue # skip filepath
-        if (is_max and file_size <= size_cutoff) or (not is_max and file_size >= size_cutoff):
-            files_sizes_pairs.append((filepath, file_size))
-
-    return tuple(files_sizes_pairs)
-
-
-def limit_files_by_size_singlethreaded(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**64) -> tuple[str]:
-    """
-    limits files to only keep files between min_size and max_size
-    min and maxes are inclusive
-    """
-    assert (isinstance(filepaths, tuple)), "path does not exist"
-    assert (isinstance(min_size, int)), "min_size was not an int"
-    assert (isinstance(max_size, int)), "max_size was not an int"
-    assert (max_size >= min_size), "max_size must be greater than min_size"
-
-    new_filepaths: list[str] = list()
-
-    for filepath in filepaths:
-        try: # faster than checking if file exists
-            file_size = os.stat(filepath).st_size
-        except:
-            continue # skip filepath
-        if file_size >= min_size and file_size <= max_size:
-            new_filepaths.append(filepath)
-
-    return tuple(new_filepaths)
-
-
-def limit_files_by_size(filepaths: tuple[str], min_size: int = 0, max_size: int = 2**64, files_per_group: int = 100) -> tuple[str]:
-    """
-    limits files to only keep files between min_size and max_size
-    min and maxes are inclusive
-    """
-    assert (isinstance(filepaths, tuple)), "path does not exist"
-    assert (isinstance(min_size, int)), "min_size was not an int"
-    assert (isinstance(max_size, int)), "max_size was not an int"
-    assert (max_size >= min_size), "max_size must be greater than min_size"
-
-    new_filepaths: list[str] = list()
-
-    grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
-
-    threads = list()
-
-    with ThreadPoolExecutor() as executor:
-        for filepaths in grouped_filepaths:
-            thread = executor.submit(limit_files_by_size_singlethreaded, filepaths, min_size, max_size)
-            threads.append(thread)
-        wait(threads)
-        [new_filepaths.extend(thread.result()) for thread in threads]
-
-    return tuple(new_filepaths)
 
 
 def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str], tuple[str]]]: # TODO move to Filelist
@@ -618,68 +444,8 @@ def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool 
     return sha256.hexdigest()
 
 
-def get_size_of_files_singlethreaded(filepaths: tuple[str]) -> int: # FIXME will be replaced/updated when I implement getting os.stat of all files in advance
-    """
-    gets the sum of all file sizes
-    """
-    assert (isinstance(filepaths, tuple))
-
-    total_size = 0
-    for filepath in filepaths:
-        assert (isinstance(filepath, str))
-        try:
-            total_size += os.stat(filepath).st_size # bytes filesize
-        except OSError: # tried to access a restricted file
-            pass
-
-    return total_size
-
-
-def get_size_of_files(filepaths: tuple[str], files_per_group: int = 100) -> int:
-    """
-    gets the sum of all file sizes
-
-    seems about the same speed as the singlethreaded version
-    """
-    assert (isinstance(filepaths, tuple))
-
-    grouped_filepaths = [tuple(filepaths[i:i+files_per_group]) if i+files_per_group < len(filepaths) else filepaths[i:] for i in range(0, len(filepaths), files_per_group)]
-
-    threads = list()
-    total_size = 0
-    with ThreadPoolExecutor() as executor:
-        for filepaths in grouped_filepaths:
-            thread = executor.submit(get_size_of_files_singlethreaded, filepaths)
-            threads.append(thread)
-        wait(threads)
-        total_size += sum(thread.result() for thread in threads)
-
-    return total_size
-
-
 def main():
     start_time = time()
-    files = get_all_files_in_folder("K:/")
-    print("{} files".format(len(files)))
-    files = limit_files_by_size(files, 1024*1024*1024)
-    print("{} files after limiting by size".format(len(files)))
-    size = get_size_of_files(files)
-    print("files are {} bytes total in size".format(size))
-    #files2 = get_all_files_in_folder("C:/Users/onebi/Documents")
-    #print("{} files".format(len(files2)))
-    #files2 = limit_files_by_size(files2, 1024*1024)
-    #print("{} files after limiting by size".format(len(files2)))
-
-    duplicates = get_duplicate_files(files, files)
-
-    import csv
-    with open("duplicate_files.csv", "w", newline="") as file:
-        csv_writer = csv.writer(file)
-        for duplicate_pair in duplicates:
-            try:
-                csv_writer.writerow(duplicate_pair)
-            except UnicodeEncodeError:
-                pass
     
     print("{} seconds".format(time() - start_time))
 
