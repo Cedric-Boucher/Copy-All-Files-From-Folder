@@ -366,6 +366,9 @@ def test_Filelist():
         - [x] obtaining whether folder has files manually without obtaining filepaths first
         - [x] obtaining whether folder has files manually after obtaining filepaths manually
         - [x] obtaining whether folder has files manually after obtaining whether folder has files
+        - [x] obtaining file extensions manually without obtaining filepaths first (singlethreaded)
+        - [x] obtaining file extensions manually after obtaining filepaths manually (singlethreaded)
+        - [x] obtaining file extensions manually after obtaining file extensions manually (singlethreaded)
     """
     from time import time
 
