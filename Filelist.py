@@ -349,7 +349,7 @@ def test_Filelist():
     """
     from time import time
 
-    test_folder = "/home/d3zyre"
+    test_folder = "C:/"
     filelists = (
         Filelist(test_folder),
         Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt")),
@@ -455,9 +455,69 @@ def test_Filelist():
         test11.does_folder_have_files()
         print("{:.1e} seconds\n".format(time() - t))
 
+        # obtaining file extensions manually without obtaining filepaths first (singlethreaded)
+        current_test[1] += 1
+        print(current_test)
+        test12 = deepcopy(filelist)
+        t = time()
+        test12.get_file_extensions_singlethreaded()
+        print("{:.1e} seconds\n".format(time() - t))
+
+        # obtaining file extensions manually after obtaining filepaths manually (singlethreaded)
+        current_test[1] += 1
+        print(current_test)
+        test13 = deepcopy(test1) # skip getting filepaths again by using test1
+        t = time()
+        test13.get_file_extensions_singlethreaded()
+        print("{:.1e} seconds\n".format(time() - t))
+
+        # obtaining file extensions manually after obtaining file extensions manually (singlethreaded)
+        current_test[1] += 1
+        print(current_test)
+        test14 = deepcopy(test3) # skip getting file extensions again by using test3
+        t = time()
+        test14.get_file_extensions_singlethreaded()
+        print("{:.1e} seconds\n".format(time() - t))
+
+
 
 if __name__ == "__main__":
     #main()
     test_Filelist()
 
 # TODO ratio the time taken by test1?
+
+"""
+[1, 1]
+8.5e+01 seconds
+
+[1, 2]
+0.0e+00 seconds
+
+[1, 3]
+4.8e+01 seconds
+
+[1, 4]
+1.4e+01 seconds
+
+[1, 5]
+0.0e+00 seconds
+
+[1, 6]
+1.2e+02 seconds
+
+[1, 7]
+6.6e+01 seconds
+
+[1, 8]
+0.0e+00 seconds
+
+[1, 9]
+0.0e+00 seconds
+
+[1, 10]
+0.0e+00 seconds
+
+[1, 11]
+0.0e+00 seconds
+"""
