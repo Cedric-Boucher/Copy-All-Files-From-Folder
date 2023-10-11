@@ -127,7 +127,27 @@ class Filelist():
         return None
 
 
-    def __limit_files_by_size(self) -> None: # TODO create single-threaded version for time comparison
+    def __limit_files_by_size_singlethreaded(self) -> None:
+        """
+        limits files to only keep files between min_size and max_size
+        min and maxes are inclusive
+        """
+        if self.__min_filesize == 0 and self.__max_filesize == self.DEFAULT_MAX_FILESIZE:
+            return None # no need to limit by size
+
+        self.__create_size_list()
+
+        indices_to_keep: list[int] = list()
+
+        indices_to_keep: list[int] = [index for index in range(len(self.__filepaths)) if (self.__filesizes[index] >= self.__min_filesize and self.__filesizes[index] <= self.__max_filesize)]
+
+        self.__filepaths = tuple([self.__filepaths[index] for index in range(len(self.__filepaths)) if index in indices_to_keep])
+        self.__filesizes = tuple([self.__filesizes[index] for index in range(len(self.__filepaths)) if index in indices_to_keep])
+
+        return None
+
+
+    def __limit_files_by_size(self) -> None:
         """
         limits files to only keep files between min_size and max_size
         min and maxes are inclusive
@@ -349,7 +369,7 @@ def test_Filelist():
     """
     from time import time
 
-    test_folder = "C:/"
+    test_folder = "C:/Users/onebi/Documents"
     filelists = (
         Filelist(test_folder),
         Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt")),
