@@ -37,6 +37,7 @@ class Filelist():
 
         self.__filepaths: tuple[str] = tuple() # full (absolute) filepath strings
         self.__filesizes: tuple[int] = tuple() # number of bytes, maps 1:1 with filepaths
+        self.__subfolders: tuple[str] = tuple() # full (absolute) folderpath strings for all subfolders of input_folder
         self.__file_extensions_found: tuple[str] = tuple() # all the unique file extensions found in filepaths
         self.__folder_has_files: bool = None # None until known
 
@@ -90,6 +91,26 @@ class Filelist():
         self.__filepaths = tuple([self.__filepaths[index] for index in range(len(self.__filepaths)) if index not in indices_to_remove])
         self.__filesizes = tuple(filesizes)
         # these two are now mapped to each other and of the same length
+
+        return None
+
+
+    def __create_subfolder_list(self) -> None:
+        """
+        populates self.__subfolders
+
+        may not necessarily be synced with filepaths list since these are not created at the same time,
+        if any folders were created or deleted in between, they may not be synced
+        """
+        if len(self.__subfolders) != 0:
+            return None # we have already generated subfolder list
+
+        folders: list[str] = list()
+
+        for path_to_file, sub_folders, _ in os.walk(self.__input_folder):
+            folders.extend([os.path.abspath(path_to_file+"/"+sub_folder) for sub_folder in sub_folders])
+
+        self.__subfolders = tuple(folders)
 
         return None
 
@@ -276,6 +297,15 @@ class Filelist():
         self.__folder_has_files = False
 
         return False # didn't find any files
+
+
+    def get_subfolders(self) -> tuple[str]:
+        """
+        returns a tuple of the strings of absolute paths of all the subfolders of the input path
+        """
+        self.__create_subfolder_list()
+
+        return self.__subfolders
 
 
 
