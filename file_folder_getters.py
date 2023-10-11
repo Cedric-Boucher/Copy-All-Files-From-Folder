@@ -5,19 +5,6 @@ from progress_bar import progress_bar
 import hashlib
 
 
-def get_subfolders(path) -> tuple[str]: # TODO move to Filelist
-    """
-    returns a tuple of the strings of absolute paths of all the subfolders of the input path
-    """
-    assert (os.path.exists(path)), "path does not exist"
-
-    subfolder_paths: list[str] = list()
-    for path_to_file, subfolders, _ in os.walk(os.path.abspath(path)):
-        subfolder_paths.extend([os.path.abspath(path_to_file+"/"+subfolder) for subfolder in subfolders])
-
-    return tuple(subfolder_paths)
-
-
 def get_immediate_subfolders(path) -> tuple[str]: # TODO move to Filelist
     """
     returns a tuple of the strings of absolute paths of the immediate subfolders of the input path
