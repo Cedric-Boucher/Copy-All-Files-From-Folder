@@ -1,5 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
+import hashlib
 
 class Filelist():
     """
@@ -196,6 +197,34 @@ class Filelist():
         self.__filesizes = tuple([self.__filesizes[index] for index in range(len(self.__filepaths)) if index in indices_to_keep])
 
         return None
+
+
+    def __get_hash(file, buffer_chunk_size: int = 16*1024*1024, only_read_one_chunk: bool = False) -> str:
+        """
+        gets the hash (sha256) of a file
+        default buffer size of 16MiB
+
+        may raise FileNotFoundError
+        """
+        if not os.path.exists(file):
+            raise FileNotFoundError # to be handled by caller
+
+        sha256 = hashlib.sha256()
+
+        try:
+            with open(file, 'rb') as f:
+                while True:
+                    chunk = f.read(buffer_chunk_size)
+                    if not chunk: # if chunk is empty due to reaching the end of the file
+                        break
+                    sha256.update(chunk)
+                    if only_read_one_chunk:
+                        break
+        except Exception as e:
+            print("EXCEPTION when reading file in Filelist.__get_hash():\n{}".format(e))
+            return ""
+
+        return sha256.hexdigest()
 
 
     def get_filepaths(self) -> tuple[str]:
