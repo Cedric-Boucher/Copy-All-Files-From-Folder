@@ -2,7 +2,6 @@ from time import time, sleep
 import os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
 from progress_bar import progress_bar
-import hashlib
 
 
 def get_immediate_subfolders(path) -> tuple[str]: # TODO move to Filelist
@@ -403,32 +402,6 @@ def __get_multiple_file_sizes(filepaths: tuple[str]) -> tuple[int]:
         ordered_file_sizes.append(file_size)
 
     return tuple(ordered_file_sizes)
-
-
-def get_hash(file, buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = False) -> str: # TODO move to Filelist as private
-    """
-    gets the hash (sha256) of a file
-    default buffer size of 16MiB
-    """
-    assert (os.path.exists(file)), "file doesn't exist"
-    assert (isinstance(buffer_chunk_size, int)), "buffer chunk size needs to be an int"
-    assert (buffer_chunk_size > 0), "buffer chunk size was too small"
-
-    sha256 = hashlib.sha256()
-
-    try:
-        with open(file, 'rb') as f:
-            while True:
-                chunk = f.read(buffer_chunk_size)
-                if not chunk: # once whole file has been read
-                    break
-                sha256.update(chunk)
-                if only_read_one_chunk:
-                    break
-    except:
-        return ""
-
-    return sha256.hexdigest()
 
 
 def main():
