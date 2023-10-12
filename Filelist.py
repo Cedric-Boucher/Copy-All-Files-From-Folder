@@ -1,6 +1,5 @@
 import os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
-from copy import deepcopy
 
 class Filelist():
     """
@@ -401,6 +400,7 @@ def test_Filelist():
         - [x] obtaining file extensions manually after obtaining file extensions manually (singlethreaded)
     """
     from time import time
+    from copy import deepcopy
 
     test_folder = "C:/Users/onebi/Documents"
     filelists = (
