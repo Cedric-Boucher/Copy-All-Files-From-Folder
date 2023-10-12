@@ -460,6 +460,9 @@ def test_Filelist():
         - [x] obtaining file extensions manually without obtaining filepaths first (singlethreaded)
         - [x] obtaining file extensions manually after obtaining filepaths manually (singlethreaded)
         - [x] obtaining file extensions manually after obtaining file extensions manually (singlethreaded)
+        - [x] obtaining file hashes manually without obtaining filepaths first
+        - [x] obtaining file hashes manually after obtaining filepaths manually
+        - [x] obtaining file hashes manually after obtaining file hashes manually
     """
     from time import time
     from copy import deepcopy
@@ -626,6 +629,36 @@ def test_Filelist():
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
 
+        # obtaining file hashes manually without obtaining filepaths first
+        current_test[1] += 1
+        print(current_test)
+        test_objects[current_test[0]].append(deepcopy(filelist))
+        t = time()
+        test_objects[current_test[0]][current_test[1]].get_filehashes()
+        result_time = time() - t
+        print("{:.1e} seconds\n".format(result_time))
+        test_times[current_test[0]].append(result_time)
+
+        # obtaining file hashes manually after obtaining filepaths manually
+        current_test[1] += 1
+        print(current_test)
+        test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
+        t = time()
+        test_objects[current_test[0]][current_test[1]].get_filehashes()
+        result_time = time() - t
+        print("{:.1e} seconds\n".format(result_time))
+        test_times[current_test[0]].append(result_time)
+
+        # obtaining file hashes manually after obtaining file hashes manually
+        current_test[1] += 1
+        print(current_test)
+        test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][14])) # skip getting file extensions again by using test 14 from this set
+        t = time()
+        test_objects[current_test[0]][current_test[1]].get_filehashes()
+        result_time = time() - t
+        print("{:.1e} seconds\n".format(result_time))
+        test_times[current_test[0]].append(result_time)
+
 
 
 if __name__ == "__main__":
@@ -633,3 +666,4 @@ if __name__ == "__main__":
     test_Filelist()
 
 # TODO ratio the time taken by test1?
+# TODO make the testing actually verify that things are correct, not simply that there are no errors
