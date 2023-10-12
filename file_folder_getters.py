@@ -372,22 +372,6 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
     return tuple(duplicate_file_matches)
 
 
-def __get_multiple_file_hashes(filepaths: tuple[str], buffer_chunk_size: int = 16777216, only_read_one_chunk: bool = True) -> tuple[str]: # TODO something similar in Filelist
-    """
-    calls get_hash for each filepath in filepaths, returns the tuple of the results
-    """
-    file_hashes = list()
-
-    for filepath in filepaths:
-        try:
-            file_hash = get_hash(filepath, buffer_chunk_size, only_read_one_chunk)
-        except: # couldn't get the file hash for some reason
-            file_hash = ""
-        file_hashes.append(file_hash)
-
-    return tuple(file_hashes)        
-
-
 def __get_multiple_file_sizes(filepaths: tuple[str]) -> tuple[int]:
     """
     gets the size of each file in filepaths
