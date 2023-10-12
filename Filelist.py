@@ -234,6 +234,9 @@ class Filelist():
 
         will ignore if a file does not exist, and just pretend that its hash is an empty string
         """
+        if len(self.__filehashes) == 0:
+            return None # filehashes have already been gotten
+
         file_hashes = list()
 
         for filepath in self.__filepaths:
@@ -357,6 +360,13 @@ class Filelist():
         return self.__subfolders
 
 
+    def get_filehashes(self) -> tuple[str]:
+        """
+        returns a tuple of the sha256 hashes of all of the files of the input path
+        """
+        self.__create_filehash_list()
+
+        return self.__filehashes
 
 
 
