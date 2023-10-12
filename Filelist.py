@@ -38,6 +38,7 @@ class Filelist():
         self.__filepaths: tuple[str] = tuple() # full (absolute) filepath strings
         self.__filesizes: tuple[int] = tuple() # number of bytes, maps 1:1 with filepaths
         self.__subfolders: tuple[str] = tuple() # full (absolute) folderpath strings for all subfolders of input_folder
+        self.__filehashes: tuple[str] = tuple() # sha256 hashes of each of the files (entire file)
         self.__file_extensions_found: tuple[str] = tuple() # all the unique file extensions found in filepaths
         self.__folder_has_files: bool = None # None until known
 
@@ -199,7 +200,7 @@ class Filelist():
         return None
 
 
-    def __get_hash(file, buffer_chunk_size: int = 16*1024*1024, only_read_one_chunk: bool = False) -> str:
+    def __get_hash(self, file, buffer_chunk_size: int = 16*1024*1024, only_read_one_chunk: bool = False) -> str:
         """
         gets the hash (sha256) of a file
         default buffer size of 16MiB
@@ -225,6 +226,26 @@ class Filelist():
             return ""
 
         return sha256.hexdigest()
+
+
+    def __create_filehash_list(self, buffer_chunk_size: int = 16*1024*1024, only_read_one_chunk: bool = False) -> None:
+        """
+        calls self.__get_hash for each file in filepaths, returns the tuple of the results
+
+        will ignore if a file does not exist, and just pretend that its hash is an empty string
+        """
+        file_hashes = list()
+
+        for filepath in self.__filepaths:
+            try:
+                file_hash = self.__get_hash(filepath, buffer_chunk_size, only_read_one_chunk)
+            except FileNotFoundError:
+                file_hash = ""
+            file_hashes.append(file_hash)
+
+        self.__filehashes = tuple(file_hashes)
+
+        return None
 
 
     def get_filepaths(self) -> tuple[str]:
@@ -334,6 +355,8 @@ class Filelist():
         self.__create_subfolder_list()
 
         return self.__subfolders
+
+
 
 
 
