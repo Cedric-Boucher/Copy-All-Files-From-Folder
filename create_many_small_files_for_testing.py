@@ -2,7 +2,7 @@ from os import path
 from random import randbytes
 from progress_bar import progress_bar
 
-number_of_files: int = 500000 # number of files to create
+number_of_files: int = 10000 # number of files to create
 file_size: int = 4096 # number of bytes
 folder_path: str = path.abspath("C:/Users/onebi/Copy-All-Files-Demo-Input/")
 
