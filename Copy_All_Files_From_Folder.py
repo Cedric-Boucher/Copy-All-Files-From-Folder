@@ -6,6 +6,7 @@ from file_folder_getters import *
 from concurrent.futures import ThreadPoolExecutor
 from filecmp import cmp as compare_files
 from time import time
+from Filelist import Filelist
 import argparse
 
 
@@ -52,7 +53,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     return output
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = 2**64, move_mode: str = "C", keep_folder_structure: bool = True, files_per_group: int = 100) -> list[tuple]:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = Filelist.DEFAULT_MAX_FILESIZE, move_mode: str = "C", keep_folder_structure: bool = True, files_per_group: int = 100) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -86,24 +87,13 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
 
     # get all files
     print("finding all files in input folder...")
-    input_files = get_all_files_in_folder(input_folder)
-    number_of_files_total = len(input_files)
+    filelist = Filelist(input_folder, file_extensions, start_with, min_filesize, max_filesize)
+    number_of_files_total = len(filelist.get_filepaths())
     print("{} files found".format(number_of_files_total))
 
-    # pass list of files through filters
-    print("passing files through filters...")
-    # don't perform limit operations unless defaults have been changed, to save time
-    if len(file_extensions) > 0:
-        input_files = limit_files_by_file_extension(input_files, file_extensions)
-    if len(start_with) > 0:
-        input_files = limit_files_by_file_start(input_files, start_with)
-    if (min_filesize != 0) or (max_filesize != 2**64):
-        input_files = limit_files_by_size(input_files, min_filesize, max_filesize)
-    new_number_of_files_total = len(input_files)
-    print("{} files left to operate on".format(new_number_of_files_total))
-    number_of_files_total = new_number_of_files_total
+    input_files = filelist.get_filepaths()
 
-    unique_folders = set()
+    unique_folders = set() # TODO replace with filelist.get_subfolders()
     for filepath in input_files:
         folderpath = os.path.dirname(filepath)
         unique_folders.add(folderpath)
@@ -119,7 +109,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     number_of_files_processed = 0
     error_counts = [0 for _ in range(9999)] # I hope that I never have over 9999 possible error codes
 
-    total_size = get_size_of_files(input_files) # FIXME will need to be replaced later
+    total_size = sum(filelist.get_filesizes())
     total_processed_size = 0
 
     if move_mode == "C":
@@ -369,8 +359,8 @@ def main() -> None:
     assert (os.path.exists(input_folder)), "input folder does not exist"
 
     if get_file_extensions_or_run_program: # True means get file extensions
-        filepaths = get_all_files_in_folder(input_folder)
-        [print(extension, end=" ") for extension in get_file_extensions(filepaths)]
+        filelist = Filelist(input_folder)
+        [print(extension, end=" ") for extension in filelist.get_file_extensions()]
         print("") # add a newline after the list
 
     else:
