@@ -96,7 +96,7 @@ class Filelist():
         return None
 
 
-    def __create_subfolder_list(self) -> None:
+    def __create_subfolder_list(self) -> None: # FIXME should be a set, not a list, to remove duplicates
         """
         populates self.__subfolders
 
