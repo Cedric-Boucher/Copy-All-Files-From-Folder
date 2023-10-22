@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
 from progress_bar import progress_bar
 
 
-def get_immediate_subfolders(path) -> tuple[str]: # TODO move to Filelist
+def get_immediate_subfolders(path) -> tuple[str, ...]: # TODO move to Filelist
     """
     returns a tuple of the strings of absolute paths of the immediate subfolders of the input path
     """
@@ -39,7 +39,7 @@ def clean_subfolders(folderpath: str, unique_folders: set[str]) ->  None: # FIXM
     return None
 
 
-def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str], tuple[str]]]: # TODO move to Filelist
+def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_per_group: int = 100) -> tuple[tuple[tuple[str, ...], tuple[str, ...]], ...]: # TODO move to Filelist
     """
     returns all the files that are duplicated between path1 and path2,
     as a tuple (each unique file/match)
@@ -60,14 +60,14 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
     filepaths1_set = set(filepaths1)
     filepaths2_set = set(filepaths2)
     paths_are_identical = (filepaths1_set == filepaths2_set)
-    filepaths_grouped_by_size: dict[int, tuple[list[str]]] = dict()
+    filepaths_grouped_by_size: dict[int, tuple[list[str], ...]] = dict()
     filepath_sizes: dict[str, int] = dict() # a way to quickly get filesize of any file once we have found them all
     # keys are size, values are tuples of size 2, first files from path1 then files from path2,
     # inside that tuple is a list of tuples containing
     # the full filepaths of any files of this size, and their sha256 hashes
-    filepaths_grouped_by_size_hash1: dict[tuple[int, str], tuple[list[str]]] = dict() # group by size and hash of first chunk of each file
+    filepaths_grouped_by_size_hash1: dict[tuple[int, str], tuple[list[str], ...]] = dict() # group by size and hash of first chunk of each file
     filepath_hash1s: dict[str, str] = dict() # a way to quickly get the first chunk hash of any file once we have found them all
-    filepaths_grouped_by_size_hash2: dict[tuple[int, str, str], tuple[list[str]]] = dict() # group by size and hash of first chunk and hash of entire file
+    filepaths_grouped_by_size_hash2: dict[tuple[int, str, str], tuple[list[str], ...]] = dict() # group by size and hash of first chunk and hash of entire file
 
     print("counting files in folders...")
 
@@ -121,7 +121,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
         print("processing filesizes...")
 
-        file_size_groups: list[tuple[int]] = [thread.result() for thread in size_threads]
+        file_size_groups: list[tuple[int, ...]] = [thread.result() for thread in size_threads]
 
     ordered_file_sizes: list[int] = list()
     [ordered_file_sizes.extend(file_size_group) for file_size_group in file_size_groups]
@@ -154,7 +154,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     print("counting size matches...")
 
-    size_match_filepathss: tuple[list[str]] = (list(), list()) # same format as filepathss
+    size_match_filepathss: tuple[list[str], list[str]] = (list(), list()) # same format as filepathss
 
     for filesize in filepaths_grouped_by_size.keys():
         if ((not paths_are_identical and (len(filepaths_grouped_by_size[filesize][0]) > 0 and len(filepaths_grouped_by_size[filesize][1]) > 0)) or
@@ -246,7 +246,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     print("counting first MB hash matches...")
 
-    hash1_match_filepathss: tuple[list[str]] = (list(), list()) # same format as filepathss
+    hash1_match_filepathss: tuple[list[str], list[str]] = (list(), list()) # same format as filepathss
 
     for filehash1 in filepaths_grouped_by_size_hash1.keys():
         if ((not paths_are_identical and (len(filepaths_grouped_by_size_hash1[filehash1][0]) > 0 and len(filepaths_grouped_by_size_hash1[filehash1][1]) > 0)) or
@@ -351,7 +351,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
 
     print("{} duplicate files".format(files_to_process))
 
-    duplicate_file_matches: list[tuple[tuple[str], tuple[str]]] = list()
+    duplicate_file_matches: list[tuple[tuple[str, ...], tuple[str, ...]]] = list()
     total_extra_size = 0
 
     for filehash2 in filepaths_grouped_by_size_hash2.keys():
@@ -372,7 +372,7 @@ def get_duplicate_files(filepaths1: tuple[str], filepaths2: tuple[str], files_pe
     return tuple(duplicate_file_matches)
 
 
-def __get_multiple_file_sizes(filepaths: tuple[str]) -> tuple[int]:
+def __get_multiple_file_sizes(filepaths: tuple[str, ...]) -> tuple[int, ...]:
     """
     gets the size of each file in filepaths
     """

@@ -16,7 +16,7 @@ class Filelist():
     FILES_PER_MULTITHREADED_COMPUTE_GROUP = 100000 # for compute bound groups
     FILES_PER_MULTITHREADED_IO_GROUP = 100 # for I/O bound groups
 
-    def __init__(self, input_folder, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = DEFAULT_MAX_FILESIZE) -> None:
+    def __init__(self, input_folder, file_extensions: tuple[str, ...] = (), start_with: tuple[str, ...] = (), min_filesize: int = 0, max_filesize: int = DEFAULT_MAX_FILESIZE) -> None:
         """
         Filelist will initialize by creating the internal data structure with the given inputs here. Once this structure is created, it cannot be edited.
         """
@@ -30,16 +30,16 @@ class Filelist():
         assert (max_filesize >= min_filesize), "max_filesize was not greater than or equal to min_filesize"
 
         self.__input_folder = os.path.abspath(input_folder)
-        self.__file_extensions: tuple[str] = file_extensions
-        self.__start_with: tuple[str] = start_with
+        self.__file_extensions: tuple[str, ...] = file_extensions
+        self.__start_with: tuple[str, ...] = start_with
         self.__min_filesize: int = min_filesize
         self.__max_filesize: int = max_filesize
 
-        self.__filepaths: tuple[str] = tuple() # full (absolute) filepath strings
-        self.__filesizes: tuple[int] = tuple() # number of bytes, maps 1:1 with filepaths
-        self.__subfolders: tuple[str] = tuple() # full (absolute) folderpath strings for all subfolders of input_folder
-        self.__filehashes: tuple[str] = tuple() # sha256 hashes of each of the files (entire file)
-        self.__file_extensions_found: tuple[str] = tuple() # all the unique file extensions found in filepaths
+        self.__filepaths: tuple[str, ...] = tuple() # full (absolute) filepath strings
+        self.__filesizes: tuple[int, ...] = tuple() # number of bytes, maps 1:1 with filepaths
+        self.__subfolders: tuple[str, ...] = tuple() # full (absolute) folderpath strings for all subfolders of input_folder
+        self.__filehashes: tuple[str, ...] = tuple() # sha256 hashes of each of the files (entire file)
+        self.__file_extensions_found: tuple[str, ...] = tuple() # all the unique file extensions found in filepaths
         self.__folder_has_files: bool = None # None until known
 
         return None
@@ -123,7 +123,7 @@ class Filelist():
         if len(self.__file_extensions) == 0:
             return None # no need to limit in this case
 
-        new_filepaths: tuple[str] = tuple([filepath for filepath in self.__filepaths if filepath.endswith(self.__file_extensions)])
+        new_filepaths: tuple[str, ...] = tuple([filepath for filepath in self.__filepaths if filepath.endswith(self.__file_extensions)])
 
         self.__filepaths = new_filepaths
 
@@ -251,7 +251,7 @@ class Filelist():
         return None
 
 
-    def get_filepaths(self) -> tuple[str]:
+    def get_filepaths(self) -> tuple[str, ...]:
         """
         returns the list (well, a tuple) of filepaths
         """
@@ -260,7 +260,7 @@ class Filelist():
         return self.__filepaths
 
 
-    def get_filesizes(self) -> tuple[str]:
+    def get_filesizes(self) -> tuple[int, ...]:
         """
         returns the list (well, a tuple) of file sizes.
         this is mapped to the tuple of filepaths from get_filepaths()
@@ -270,7 +270,7 @@ class Filelist():
         return self.__filesizes
 
 
-    def get_file_extensions_singlethreaded(self) -> tuple[str]:
+    def get_file_extensions_singlethreaded(self) -> tuple[str, ...]:
         """
         returns a tuple of all unique file extensions
         faster than the multithreaded version in some (or all) cases
@@ -295,7 +295,7 @@ class Filelist():
 
 
 
-    def get_file_extensions(self) -> tuple[str]:
+    def get_file_extensions(self) -> tuple[str, ...]:
         """
         returns a tuple of all unique file extensions
         multithreaded to speed up having to go through potentially millions of files
@@ -351,7 +351,7 @@ class Filelist():
         return False # didn't find any files
 
 
-    def get_subfolders(self) -> tuple[str]:
+    def get_subfolders(self) -> tuple[str, ...]:
         """
         returns a tuple of the strings of absolute paths of all the subfolders of the input path
         """
@@ -360,7 +360,7 @@ class Filelist():
         return self.__subfolders
 
 
-    def get_filehashes(self) -> tuple[str]:
+    def get_filehashes(self) -> tuple[str, ...]:
         """
         returns a tuple of the sha256 hashes of all of the files of the input path
         """
@@ -389,7 +389,7 @@ def get_file_extensions_singlethreaded(filelist: Filelist, start_index: int, sto
     return file_extensions
 
 
-def limit_files_by_size_singlethreaded(filelist: Filelist, start_index: int, stop_index: int, min_filesize: int, max_filesize: int) -> tuple[int]:
+def limit_files_by_size_singlethreaded(filelist: Filelist, start_index: int, stop_index: int, min_filesize: int, max_filesize: int) -> tuple[int, ...]:
     """
     limits files to only keep files between min_size and max_size
     min and maxes are inclusive

@@ -10,7 +10,7 @@ from Filelist import Filelist
 import argparse
 
 
-def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, bool]:
+def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, bool, int, int]:
     """
     takes care of parsing the command line arguments passed to the program
 
@@ -53,7 +53,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     return output
 
 
-def move_files(input_folder, output_folder = None, file_extensions: tuple[str] = (), start_with: tuple[str] = (), min_filesize: int = 0, max_filesize: int = Filelist.DEFAULT_MAX_FILESIZE, move_mode: str = "C", keep_folder_structure: bool = True, files_per_group: int = 100) -> list[tuple]:
+def move_files(input_folder, output_folder = None, file_extensions: tuple[str, ...] = (), start_with: tuple[str, ...] = (), min_filesize: int = 0, max_filesize: int = Filelist.DEFAULT_MAX_FILESIZE, move_mode: str = "C", keep_folder_structure: bool = True, files_per_group: int = 100) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
 
@@ -193,7 +193,7 @@ def move_files(input_folder, output_folder = None, file_extensions: tuple[str] =
     return error_return
 
 
-def __move_files_unit_processor(filepaths: tuple[str], input_folder, output_folder, unique_folders: set[str], move_mode: str, keep_folder_structure: bool):
+def __move_files_unit_processor(filepaths: tuple[str, ...], input_folder, output_folder, unique_folders: set[str], move_mode: str, keep_folder_structure: bool):
     """
     multithreaded unit processor for move files
     do not use on its own
