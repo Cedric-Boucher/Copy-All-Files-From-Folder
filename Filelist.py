@@ -40,7 +40,7 @@ class Filelist():
         self.__subfolders: tuple[str, ...] = tuple() # full (absolute) folderpath strings for all subfolders of input_folder
         self.__filehashes: tuple[str, ...] = tuple() # sha256 hashes of each of the files (entire file)
         self.__file_extensions_found: tuple[str, ...] = tuple() # all the unique file extensions found in filepaths
-        self.__folder_has_files: bool = None # None until known
+        self.__folder_has_files: bool | None = None # None until known
 
         return None
 
