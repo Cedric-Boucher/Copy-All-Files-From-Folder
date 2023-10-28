@@ -2,11 +2,10 @@ from time import time
 from copy import deepcopy
 from Filelist import Filelist
 import os
-import random
 
 
 TEST_FOLDER_RELATIVE_PATH = "FILELIST_TESTING"
-TEST_FILE_SIZE_BOUNDS = (1024, 1024**2) # in bytes
+TEST_FILE_SIZE = 1024**2 # in bytes
 TEST_SUBFOLDERS = ("test1", "test2", "test3", "test1/test11")
 TEST_FILES = (
     "test1/file1.png",
@@ -39,7 +38,7 @@ def create_test_setup() -> dict[str, int]:
     test_files = tuple([os.path.join(TEST_FOLDER_RELATIVE_PATH, file) for file in TEST_FILES])
 
     for file_path in test_files:
-        file_size = random.randint(TEST_FILE_SIZE_BOUNDS[0], TEST_FILE_SIZE_BOUNDS[1])
+        file_size = TEST_FILE_SIZE
         test_file_path_sizes[file_path] = file_size
         bytes_to_write = bytes([0 for _ in range(file_size)])
         with open(file_path, "wb") as file_handle:
@@ -81,10 +80,16 @@ def test_Filelist():
         Filelist(test_folder, file_extensions=(".png", ".jpg")),
         Filelist(test_folder, start_with=("file1",)),
         Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",)),
-        Filelist(test_folder, min_filesize=TEST_FILE_SIZE_BOUNDS[0]*8),
-        Filelist(test_folder, max_filesize=int(TEST_FILE_SIZE_BOUNDS[1]/8)),
-        Filelist(test_folder, min_filesize=TEST_FILE_SIZE_BOUNDS[0]*8, max_filesize=int(TEST_FILE_SIZE_BOUNDS[1]/8)),
-        Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE_BOUNDS[0]*8, max_filesize=int(TEST_FILE_SIZE_BOUNDS[1]/8))
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE+1),
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE-1),
+        Filelist(test_folder, max_filesize=TEST_FILE_SIZE+1),
+        Filelist(test_folder, max_filesize=TEST_FILE_SIZE-1),
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE+1),
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE+1, max_filesize=TEST_FILE_SIZE+1),
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE-1),
+        Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE+1),
+        Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE+1, max_filesize=TEST_FILE_SIZE+1),
+        Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE-1)
         )
 
     current_test = [-1, -1]
@@ -268,6 +273,17 @@ def test_Filelist():
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
+    
+    print(test_results)
+
+
+
+def expected_test_results() -> list[list[object]]:
+    expected_test_results: list[list[object]] = [
+        []
+    ]
+
+    return expected_test_results
 
 
 
