@@ -30,16 +30,16 @@ class progress_bar:
         self.__with_rate = with_rate
         self.__rate_units = rate_units
         if with_ETA:
-            self.__ETA = ETA()
+            self.__eta = ETA()
         else:
-            self.__ETA = None
+            self.__eta = None
 
         self.__output_string = "" # not defined yet
 
         return None
 
 
-    def __update_output_string(self, progress: float, rate_progress: float = None) -> None:
+    def __update_output_string(self, progress: float, rate_progress: float | None = None) -> None:
         assert (isinstance(progress, (float, int))), "type of progress was not float or int"
         assert (isinstance(rate_progress, (float, int)) or rate_progress is None), "rate_progress was not None or float/int"
 
@@ -53,18 +53,18 @@ class progress_bar:
         output_string += self.__end_string
         if self.__with_percentage:
             output_string += " {:6.2f}%".format(progress*100)
-        if self.__with_ETA:
-            output_string += " | {} remaining".format(seconds_to_time(self.__ETA.get_time_remaining(progress)))
-        if self.__with_rate and rate_progress is not None:
+        if self.__eta is not None:
+            output_string += " | {} remaining".format(seconds_to_time(self.__eta.get_time_remaining(progress)))
+        if self.__with_rate and rate_progress is not None and self.__eta is not None:
             try:
-                output_string += " | {:8.2f} {}/s".format(rate_progress/self.__ETA.get_time_since_init(), self.__rate_units)
+                output_string += " | {:8.2f} {}/s".format(rate_progress/self.__eta.get_time_since_init(), self.__rate_units)
             except ZeroDivisionError:
                 output_string += " | {} {}/s".format("N/A", self.__rate_units)
 
         self.__output_string = output_string
         return None
     
-    def print_progress_bar(self, progress: float, rate_progress: float = None) -> None:
+    def print_progress_bar(self, progress: float, rate_progress: float | None = None) -> None:
         """
         progress is [0, 1],
         rate_progress and rate units are only used if this object was initialized with with_rate = True,
@@ -82,8 +82,8 @@ class progress_bar:
 
         progress is [0, 1]
         """
-        if self.__with_ETA:
-            return self.__ETA.get_time_remaining(progress)
+        if self.__eta is not None:
+            return self.__eta.get_time_remaining(progress)
         else:
             return 0
 

@@ -53,6 +53,7 @@ def parse_inputs() -> tuple[bool, str, str, list[str], list[str], str, bool, boo
     return output
 
 
+# FIXME output_folder is not checked with assertion
 def move_files(input_folder, output_folder = None, file_extensions: tuple[str, ...] = (), start_with: tuple[str, ...] = (), min_filesize: int = 0, max_filesize: int = Filelist.DEFAULT_MAX_FILESIZE, move_mode: str = "C", keep_folder_structure: bool = True, files_per_group: int = 100) -> list[tuple]:
     """
     move_mode can be either "M" for move, "C" for copy, "T" for trash, "D" for permanently delete
@@ -215,6 +216,7 @@ def __move_files_unit_processor(filepaths: tuple[str, ...], input_folder, output
         else:
             output_folder_path = output_folder
 
+        output_file_exists = True # assume this to get rid of unbound variable warning
         if move_mode in ("C", "M"):
             output_folder_exists = os.path.exists(output_folder_path)
             if not output_folder_exists:
@@ -222,7 +224,7 @@ def __move_files_unit_processor(filepaths: tuple[str, ...], input_folder, output
                     os.makedirs(output_folder_path)
                 except:
                     assert (False), "destination folder didn't exist and couldn't be created"
-            output_file_exists = os.path.exists(os.path.abspath(output_folder_path+"/"+os.path.split(filepath)[1]))
+            output_file_exists: bool = os.path.exists(os.path.abspath(output_folder_path+"/"+os.path.split(filepath)[1]))
 
         try:
             if move_mode == "C":
@@ -295,6 +297,8 @@ def move_file_error(filepath: str, destination_folder, move_mode: str = "C", max
 
     error_is_filename_conflict = os.path.exists(os.path.abspath(destination_folder+"/"+filename))
 
+    destination_exists = True # assume this to get rid of unbound variable warning
+    new_filename = "" # assume this to get rid of unbound variable warning
     if error_is_filename_conflict:
         # check if files are the same
         files_are_identical = compare_files(filepath, os.path.abspath(destination_folder+"/"+filename), shallow = False)
@@ -310,8 +314,8 @@ def move_file_error(filepath: str, destination_folder, move_mode: str = "C", max
         for retry_count in range(max_retries):
             # retry up to 100 times to copy file with new filename
             new_filename_parts = filename.split(".")
-            new_filename = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
-            destination_exists = os.path.exists(os.path.abspath(destination_folder+"/"+new_filename))
+            new_filename: str = ".".join(new_filename_parts[:-1]) + " ({})".format(retry_count) + "." + new_filename_parts[-1]
+            destination_exists: bool = os.path.exists(os.path.abspath(destination_folder+"/"+new_filename))
 
             if not destination_exists:
                 break # new_filename can be used
