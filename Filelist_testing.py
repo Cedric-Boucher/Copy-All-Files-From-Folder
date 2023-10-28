@@ -89,12 +89,14 @@ def test_Filelist():
 
     current_test = [-1, -1]
     test_objects: list[list[Filelist]] = list()
+    test_results: list[list[object]] = list()
     test_times: list[list[float]] = list()
 
     for filelist in filelists:
         current_test[0] += 1
         current_test[1] = -1
         test_objects.append(list())
+        test_results.append(list())
         test_times.append(list())
 
         # obtaining filepaths manually
@@ -102,7 +104,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(filelist))
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filepaths()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filepaths())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -112,7 +114,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filepaths()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filepaths())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -122,7 +124,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(filelist))
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_file_extensions()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_file_extensions())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -132,7 +134,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_file_extensions()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_file_extensions())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -142,7 +144,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][2])) # skip getting file extensions again by using test 2 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_file_extensions()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_file_extensions())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -152,7 +154,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(filelist))
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filesizes()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filesizes())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -162,7 +164,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filesizes()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filesizes())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -172,7 +174,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][5])) # skip getting file sizes again by using test 5 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filesizes()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filesizes())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -182,7 +184,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(filelist))
         t = time()
-        test_objects[current_test[0]][current_test[1]].does_folder_have_files()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].does_folder_have_files())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -192,7 +194,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].does_folder_have_files()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].does_folder_have_files())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -202,7 +204,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][8])) # skip checking for files again by using test 8 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].does_folder_have_files()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].does_folder_have_files())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -212,7 +214,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(filelist))
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_file_extensions_singlethreaded()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_file_extensions_singlethreaded())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -222,7 +224,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_file_extensions_singlethreaded()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_file_extensions_singlethreaded())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -232,7 +234,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][2])) # skip getting file extensions again by using test 2 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_file_extensions_singlethreaded()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_file_extensions_singlethreaded())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -242,7 +244,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(filelist))
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filehashes()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filehashes())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -252,7 +254,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][0])) # skip getting filepaths again by using test 0 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filehashes()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filehashes())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
@@ -262,7 +264,7 @@ def test_Filelist():
         print(current_test)
         test_objects[current_test[0]].append(deepcopy(test_objects[current_test[0]][14])) # skip getting file extensions again by using test 14 from this set
         t = time()
-        test_objects[current_test[0]][current_test[1]].get_filehashes()
+        test_results[current_test[0]].append(test_objects[current_test[0]][current_test[1]].get_filehashes())
         result_time = time() - t
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
