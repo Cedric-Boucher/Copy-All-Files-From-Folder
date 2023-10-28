@@ -2,6 +2,7 @@ from time import time
 from copy import deepcopy
 from Filelist import Filelist
 import os
+from pprint import pprint
 
 
 TEST_FOLDER_RELATIVE_PATH = "FILELIST_TESTING"
@@ -18,7 +19,8 @@ TEST_FILES = (
     )
 from Filelist_expected_test_results import EXPECTED_TEST_RESULTS
 
-def create_test_setup() -> dict[str, int]:
+
+def create_test_setup():
     """
     creates a folder, subfolders, and some files specifically for the purposes of unit testing
 
@@ -33,18 +35,15 @@ def create_test_setup() -> dict[str, int]:
         if not os.path.exists(subfolder):
             os.makedirs(subfolder)
 
-    test_file_path_sizes: dict[str, int] = dict()
-
     test_files = tuple([os.path.join(TEST_FOLDER_RELATIVE_PATH, file) for file in TEST_FILES])
 
     for file_path in test_files:
         file_size = TEST_FILE_SIZE
-        test_file_path_sizes[file_path] = file_size
         bytes_to_write = bytes([0 for _ in range(file_size)])
         with open(file_path, "wb") as file_handle:
             file_handle.write(bytes_to_write)
 
-    return test_file_path_sizes
+    return
 
 
 def test_Filelist():
@@ -274,10 +273,13 @@ def test_Filelist():
         print("{:.1e} seconds\n".format(result_time))
         test_times[current_test[0]].append(result_time)
     
-    print(test_results)
+    return test_results
 
 
 
 if __name__ == "__main__":
     create_test_setup()
-    test_Filelist()
+    test_results = test_Filelist()
+    if (test_results != EXPECTED_TEST_RESULTS): # FIXME need to convert paths to relative # FIXME need to sort things before comparing # FIXME compare one thing at a time to be able to tell what failed
+        pprint(test_results)
+        assert (False), "Filelist has failed testing!"
