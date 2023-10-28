@@ -75,16 +75,16 @@ def test_Filelist():
         - [x] obtaining file hashes manually after obtaining file hashes manually
     """
 
-    test_folder = "/home"
+    test_folder = TEST_FOLDER_RELATIVE_PATH
     filelists = (
         Filelist(test_folder),
-        Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt")),
-        Filelist(test_folder, start_with=("File", "test")),
-        Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt"), start_with=("File", "test")),
-        Filelist(test_folder, min_filesize=4096),
-        Filelist(test_folder, max_filesize=1024**2),
-        Filelist(test_folder, min_filesize=4096, max_filesize=1024**2),
-        Filelist(test_folder, file_extensions=(".png", ".jpeg", ".py", ".txt"), start_with=("File", "test"), min_filesize=4096, max_filesize=1024**2)
+        Filelist(test_folder, file_extensions=(".png", ".jpg")),
+        Filelist(test_folder, start_with=("file1",)),
+        Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",)),
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE_BOUNDS[0]*8),
+        Filelist(test_folder, max_filesize=int(TEST_FILE_SIZE_BOUNDS[1]/8)),
+        Filelist(test_folder, min_filesize=TEST_FILE_SIZE_BOUNDS[0]*8, max_filesize=int(TEST_FILE_SIZE_BOUNDS[1]/8)),
+        Filelist(test_folder, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE_BOUNDS[0]*8, max_filesize=int(TEST_FILE_SIZE_BOUNDS[1]/8))
         )
 
     current_test = [-1, -1]
@@ -270,5 +270,5 @@ def test_Filelist():
 
 
 if __name__ == "__main__":
-    print(create_test_setup())
-    #test_Filelist()
+    create_test_setup()
+    test_Filelist()
