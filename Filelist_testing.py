@@ -1,3 +1,53 @@
+from time import time
+from copy import deepcopy
+from Filelist import Filelist
+import os
+import random
+
+
+TEST_FOLDER_RELATIVE_PATH = "FILELIST_TESTING"
+TEST_FILE_SIZE_BOUNDS = (1024, 1024**2) # in bytes
+TEST_SUBFOLDERS = ("test1", "test2", "test3", "test1/test11")
+TEST_FILES = (
+    "test1/file1.png",
+    "test1/file2.jpg",
+    "test1/file3.bmp",
+    "test2/file1.png",
+    "test2/file2.bmp",
+    "test2/file3.jpg",
+    "test1/test11/file11.qoi"
+    )
+
+
+def create_test_setup() -> dict[str, int]:
+    """
+    creates a folder, subfolders, and some files specifically for the purposes of unit testing
+
+    returns a dictionary of the test file paths and their corresponding file size in bytes
+    """
+    if not os.path.exists(TEST_FOLDER_RELATIVE_PATH):
+        os.makedirs(TEST_FOLDER_RELATIVE_PATH)
+
+    subfolders = tuple([os.path.join(TEST_FOLDER_RELATIVE_PATH, subfolder) for subfolder in TEST_SUBFOLDERS])
+
+    for subfolder in subfolders:
+        if not os.path.exists(subfolder):
+            os.makedirs(subfolder)
+
+    test_file_path_sizes: dict[str, int] = dict()
+
+    test_files = tuple([os.path.join(TEST_FOLDER_RELATIVE_PATH, file) for file in TEST_FILES])
+
+    for file_path in test_files:
+        file_size = random.randint(TEST_FILE_SIZE_BOUNDS[0], TEST_FILE_SIZE_BOUNDS[1])
+        test_file_path_sizes[file_path] = file_size
+        bytes_to_write = bytes([0 for _ in range(file_size)])
+        with open(file_path, "wb") as file_handle:
+            file_handle.write(bytes_to_write)
+
+    return test_file_path_sizes
+
+
 def test_Filelist():
     """
     runs all tests on Filelist to ensure things are working as expected
@@ -24,9 +74,6 @@ def test_Filelist():
         - [x] obtaining file hashes manually after obtaining filepaths manually
         - [x] obtaining file hashes manually after obtaining file hashes manually
     """
-    from time import time
-    from copy import deepcopy
-    from Filelist import Filelist
 
     test_folder = "/home"
     filelists = (
@@ -42,7 +89,7 @@ def test_Filelist():
 
     current_test = [-1, -1]
     test_objects: list[list[Filelist]] = list()
-    test_times: list[list[int]] = list()
+    test_times: list[list[float]] = list()
 
     for filelist in filelists:
         current_test[0] += 1
@@ -223,4 +270,5 @@ def test_Filelist():
 
 
 if __name__ == "__main__":
-    test_Filelist()
+    print(create_test_setup())
+    #test_Filelist()
