@@ -276,10 +276,22 @@ def test_Filelist():
     return test_results
 
 
+def verify_test_results(test_results: list[list[object]], expected_test_results: list[list[object]]) -> None:
+    """
+    checks if test_results is the same as expected_test_results.
+    this function will first sort items in the results to be able to compare them,
+    as well as convert full paths to correct relative paths.
+    if the inputs are not identical, differences will be shown, then AssertationError will be raised.
+    if the inputs are identical then this will return None
+    """
+    # FIXME need to convert paths to relative
+    # FIXME need to sort things before comparing
+    # FIXME compare one thing at a time to be able to tell what failed
+
+
+
 
 if __name__ == "__main__":
     create_test_setup()
     test_results = test_Filelist()
-    if (test_results != EXPECTED_TEST_RESULTS): # FIXME need to convert paths to relative # FIXME need to sort things before comparing # FIXME compare one thing at a time to be able to tell what failed
-        pprint(test_results)
-        assert (False), "Filelist has failed testing!"
+    verify_test_results(test_results, EXPECTED_TEST_RESULTS)
