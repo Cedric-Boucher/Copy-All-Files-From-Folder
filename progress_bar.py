@@ -87,3 +87,4 @@ class progress_bar:
         else:
             return 0
 
+# make unit tests for progress bar

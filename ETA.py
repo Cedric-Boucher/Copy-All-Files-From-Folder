@@ -34,3 +34,4 @@ class ETA:
     def get_time_since_init(self) -> float:
         return time() - self.__start_time
 
+# make unit tests for ETA
