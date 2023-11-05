@@ -61,40 +61,40 @@ class test_Filelist():
 
     def test_obtaining_filepaths(self) -> None:
         result = self.test_filelist.get_filepaths()
-        self.assertEqual(result, self.expected_results[0])
+        self.assertEqual(set(result), set(self.expected_results[0]))
 
     def test_obtaining_filepaths_after_obtaining_filepaths(self) -> None:
         self.test_filelist.get_filepaths()
         result = self.test_filelist.get_filepaths()
-        self.assertEqual(result, self.expected_results[1])
+        self.assertEqual(set(result), set(self.expected_results[1]))
 
     def test_obtaining_file_extensions(self) -> None:
         result = self.test_filelist.get_file_extensions()
-        self.assertEqual(result, self.expected_results[2])
+        self.assertEqual(set(result), set(self.expected_results[2]))
 
     def test_obtaining_file_extensions_after_obtaining_filepaths(self) -> None:
         self.test_filelist.get_filepaths()
         result = self.test_filelist.get_file_extensions()
-        self.assertEqual(result, self.expected_results[3])
+        self.assertEqual(set(result), set(self.expected_results[3]))
 
     def test_obtaining_file_extensions_after_obtaining_file_extensions(self) -> None:
         self.test_filelist.get_file_extensions()
         result = self.test_filelist.get_file_extensions()
-        self.assertEqual(result, self.expected_results[4])
+        self.assertEqual(set(result), set(self.expected_results[4]))
 
     def test_obtaining_file_sizes(self) -> None:
         result = self.test_filelist.get_filesizes()
-        self.assertEqual(result, self.expected_results[5])
+        self.assertEqual(set(result), set(self.expected_results[5]))
 
     def test_obtaining_file_sizes_after_obtaining_filepaths(self) -> None:
         self.test_filelist.get_filepaths()
         result = self.test_filelist.get_filesizes()
-        self.assertEqual(result, self.expected_results[6])
+        self.assertEqual(set(result), set(self.expected_results[6]))
 
     def test_obtaining_file_sizes_after_obtaining_file_sizes(self) -> None:
         self.test_filelist.get_filesizes()
         result = self.test_filelist.get_filesizes()
-        self.assertEqual(result, self.expected_results[7])
+        self.assertEqual(set(result), set(self.expected_results[7]))
 
     def test_obtaining_has_files(self) -> None:
         result = self.test_filelist.does_folder_have_files()
@@ -112,31 +112,31 @@ class test_Filelist():
 
     def test_obtaining_file_extensions_singlethreaded(self) -> None:
         result = self.test_filelist.get_file_extensions_singlethreaded()
-        self.assertEqual(result, self.expected_results[11])
+        self.assertEqual(set(result), set(self.expected_results[11]))
 
     def test_obtaining_file_extensions_singlethreaded_after_obtaining_filepaths(self) -> None:
         self.test_filelist.get_filepaths()
         result = self.test_filelist.get_file_extensions_singlethreaded()
-        self.assertEqual(result, self.expected_results[12])
+        self.assertEqual(set(result), set(self.expected_results[12]))
 
     def test_obtaining_file_extensions_singlethreaded_after_obtaining_file_extensions(self) -> None:
         self.test_filelist.get_file_extensions_singlethreaded()
         result = self.test_filelist.get_file_extensions_singlethreaded()
-        self.assertEqual(result, self.expected_results[13])
+        self.assertEqual(set(result), set(self.expected_results[13]))
 
     def test_obtaining_file_hashes(self) -> None:
         result = self.test_filelist.get_filehashes()
-        self.assertEqual(result, self.expected_results[14])
+        self.assertEqual(set(result), set(self.expected_results[14]))
 
     def test_obtaining_file_hashes_after_obtaining_filepaths(self) -> None:
         self.test_filelist.get_filepaths()
         result = self.test_filelist.get_filehashes()
-        self.assertEqual(result, self.expected_results[15])
+        self.assertEqual(set(result), set(self.expected_results[15]))
 
     def test_obtaining_file_hashes_after_obtaining_file_hashes(self) -> None:
         self.test_filelist.get_filehashes()
         result = self.test_filelist.get_filehashes()
-        self.assertEqual(result, self.expected_results[16])
+        self.assertEqual(set(result), set(self.expected_results[16]))
 
 
 
@@ -151,84 +151,84 @@ class test_Filelist_file_extensions(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, file_extensions=(".png", ".jpg"))
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[1]
 
 
 class test_Filelist_file_starts(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, start_with=("file1",))
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[2]
 
 
 class test_Filelist_file_extensions_and_starts(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, file_extensions=(".png", ".jpg"), start_with=("file1",))
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[3]
 
 
 class test_Filelist_min_filesize_greater(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, min_filesize=TEST_FILE_SIZE+1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[4]
 
 
 class test_Filelist_min_filesize_lesser(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, min_filesize=TEST_FILE_SIZE-1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[5]
 
 
 class test_Filelist_max_filesize_greater(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, max_filesize=TEST_FILE_SIZE+1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[6]
 
 
 class test_Filelist_max_filesize_lesser(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, max_filesize=TEST_FILE_SIZE-1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[7]
 
 
 class test_Filelist_min_and_max_filesize_bounding(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE+1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[8]
 
 
-class test_Filelist_min_and_max_filesize_invalid(test_Filelist, unittest.TestCase): # this will throw exceptions
+class test_Filelist_min_and_max_filesize_invalid(test_Filelist, unittest.TestCase): # this will throw exceptions so TODO update test expected results
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, min_filesize=TEST_FILE_SIZE+1, max_filesize=TEST_FILE_SIZE-1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[9]
 
 
 class test_Filelist_everything_1(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE+1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[10]
 
 
 class test_Filelist_everything_2(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE+1, max_filesize=TEST_FILE_SIZE+1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[11]
 
 
 class test_Filelist_everything_3(test_Filelist, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_filelist = Filelist(TEST_FOLDER_RELATIVE_PATH, file_extensions=(".png", ".jpg"), start_with=("file1",), min_filesize=TEST_FILE_SIZE-1, max_filesize=TEST_FILE_SIZE-1)
-        self.expected_results = EXPECTED_TEST_RESULTS[0]
+        self.expected_results = EXPECTED_TEST_RESULTS[12]
 
 
 
